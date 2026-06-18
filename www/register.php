@@ -30,10 +30,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>สมัครสมาชิก | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
   <main class="app">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <section class="panel">
       <h1>สมัครสมาชิก</h1>

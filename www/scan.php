@@ -24,6 +24,7 @@ if (!$quest) {
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>สแกน QR | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="camera-body">

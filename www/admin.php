@@ -94,11 +94,12 @@ $logs = $conn->query("
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>แอดมิน | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
   <main class="app admin-wide">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <section class="panel">
       <p class="eyebrow">Admin Panel</p>

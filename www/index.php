@@ -6,10 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
   <main class="app">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <section class="hero panel">
       <p class="eyebrow">แพลตฟอร์มท่องเที่ยวเชิงภารกิจ</p>

@@ -42,10 +42,11 @@ $percent = $total > 0 ? round(($done / $total) * 100) : 0;
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e($place["name"]) ?> | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
   <main class="app">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <a class="back" href="places.php">กลับ</a>
 

@@ -55,10 +55,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !$alreadyDone) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ภารกิจ | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
   <main class="app">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <a class="back" href="place.php?id=<?= e($quest["place_id"]) ?>">กลับ</a>
 

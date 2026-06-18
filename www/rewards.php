@@ -53,10 +53,11 @@ $rewards = $conn->query("SELECT * FROM rewards ORDER BY cost_points ASC");
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>รางวัล | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
   <main class="app">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <section class="panel">
       <p class="muted">คะแนนของคุณ</p>

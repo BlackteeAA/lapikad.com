@@ -17,7 +17,8 @@ if (!$quest) {
     redirect("admin.php");
 }
 
-$qrText = "LAPIKAD:" . $quest["target_code"];
+$baseUrl = "https://nag-florist-chance.ngrok-free.dev";
+$qrText = $baseUrl . "/qr_claim.php?code=" . urlencode($quest["target_code"]);
 $qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrText);
 ?>
 <!DOCTYPE html>
@@ -27,10 +28,11 @@ $qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . ur
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QR Code | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
   <main class="app">
-    <?php include "_nav.php"; ?>
+    <?php include "includes/topbar.php"; ?>
 
     <a class="back" href="admin.php">กลับ</a>
 
