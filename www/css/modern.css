@@ -525,3 +525,514 @@ body{
   background: #dc2626;
   color: #fff;
 }
+
+body {
+  background: #eaf6ff;
+}
+
+html,
+body {
+  min-height: 100%;
+  background:
+    linear-gradient(
+      rgba(245, 250, 255, 0.72),
+      rgba(245, 250, 255, 0.72)
+    ),
+    url("../assets/images/lapikadbg.png") !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: transparent !important;
+}
+
+.dashboard-page {
+  background: transparent !important;
+}
+
+/* Transparent UI - ไม่ขุ่น ไม่เบลอ */
+/* วางแทนตั้งแต่ส่วน Glass UI Theme ลงไปจนจบไฟล์ */
+
+/* ปิดชั้น overlay ที่ทำให้พื้นหลังขุ่น */
+html::before,
+body::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* พื้นหลังเว็บ: เห็นภาพชัดขึ้น ไม่ขุ่น */
+html,
+body {
+  min-height: 100%;
+  background:
+    linear-gradient(
+      rgba(245, 250, 255, 0.28),
+      rgba(245, 250, 255, 0.28)
+    ),
+    url("../assets/images/lapikadbg.png") !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+
+body {
+  margin: 0;
+}
+
+/* ตัวแอปโปร่งใส เพื่อให้เห็นพื้นหลัง */
+.app {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: transparent !important;
+}
+
+/* หน้า dashboard ไม่ทับพื้นหลัง */
+.dashboard-page {
+  background: transparent !important;
+}
+
+/* กล่องต่าง ๆ ใส แต่ไม่ blur */
+.panel,
+.card,
+.reward-card,
+.place-card,
+.quest-card,
+.modern-place-card,
+.quick-card,
+.dashboard-hero,
+.stat,
+.login-box,
+.result-card,
+.qr-display,
+.reward-box,
+.admin-item,
+section.panel {
+  background: rgba(255, 255, 255, 0.36) !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Navbar ใส ไม่ blur */
+.app-topbar {
+  background: rgba(255, 255, 255, 0.52) !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55) !important;
+
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.10) !important;
+}
+
+/* ช่อง input / select / textarea */
+input,
+select,
+textarea {
+  background: rgba(255, 255, 255, 0.48) !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+
+  box-shadow:
+    0 8px 18px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* ปุ่มหลักยังชัด */
+.btn,
+.hero-btn,
+.place-btn {
+  border: none !important;
+  box-shadow:
+    0 12px 26px rgba(15, 23, 42, 0.18) !important;
+}
+
+/* ปุ่มรองแบบใส */
+.btn.ghost,
+.ghost {
+  background: rgba(255, 255, 255, 0.42) !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.58) !important;
+  color: #0f172a !important;
+}
+
+/* ข้อความให้อ่านง่าย */
+.panel h1,
+.panel h2,
+.panel h3,
+.card h1,
+.card h2,
+.card h3,
+.reward-card h1,
+.reward-card h2,
+.reward-card h3,
+.modern-place-card h3,
+.dashboard-hero h1,
+.quick-card strong {
+  color: #071226 !important;
+}
+
+.panel p,
+.card p,
+.reward-card p,
+.muted,
+.meta,
+.dashboard-hero p,
+.quick-card p,
+.place-content p {
+  color: #26384f !important;
+}
+
+/* Stat card ให้ยังเด่น ไม่ใสเกินไป */
+.stat-card {
+  color: #ffffff !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.stat-blue {
+  background: linear-gradient(135deg, rgba(37,99,235,0.92), rgba(29,78,216,0.92)) !important;
+}
+
+.stat-green {
+  background: linear-gradient(135deg, rgba(34,197,94,0.92), rgba(22,163,74,0.92)) !important;
+}
+
+.stat-purple {
+  background: linear-gradient(135deg, rgba(139,92,246,0.92), rgba(109,40,217,0.92)) !important;
+}
+
+/* Mobile Topbar + Bottom Navigation */
+
+.mobile-topbar {
+  height: 64px;
+  padding: 0 16px;
+  margin: -18px -18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: rgba(255, 255, 255, 0.58) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  color: #071226;
+  font-weight: 800;
+}
+
+.brand-circle,
+.top-profile {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2563eb, #22c55e);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.hamburger-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  padding: 10px;
+  cursor: pointer;
+
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #0f172a;
+  border-radius: 99px;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(15, 23, 42, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.25s;
+}
+
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+
+  width: 290px;
+  max-width: 82vw;
+  height: 100vh;
+  padding: 20px;
+
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 18px 0 40px rgba(15, 23, 42, 0.18);
+
+  transform: translateX(-105%);
+  transition: 0.25s;
+}
+
+.menu-toggle:checked ~ .side-menu {
+  transform: translateX(0);
+}
+
+.menu-toggle:checked ~ .menu-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.side-close {
+  display: inline-block;
+  margin-bottom: 24px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.side-profile {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(37, 99, 235, 0.08);
+  margin-bottom: 18px;
+}
+
+.side-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+
+  background: linear-gradient(135deg, #2563eb, #22c55e);
+  color: white;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.side-profile strong {
+  display: block;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.side-profile span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.side-links {
+  display: grid;
+  gap: 10px;
+}
+
+.side-links a {
+  padding: 14px 16px;
+  border-radius: 16px;
+  color: #0f172a;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+}
+
+.side-links .danger-link {
+  color: #dc2626;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  z-index: 120;
+
+  width: calc(100% - 28px);
+  max-width: 430px;
+  height: 74px;
+
+  transform: translateX(-50%);
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 24px;
+
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+}
+
+.bottom-nav a {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+
+  color: #64748b;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bottom-nav svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.bottom-nav a.active {
+  color: #2563eb;
+}
+
+.app {
+  padding-bottom: 110px !important;
+}
+
+/* Profile Page */
+
+.profile-hero {
+  text-align: center;
+  padding: 28px 18px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  margin-bottom: 16px;
+}
+
+.profile-avatar-large {
+  width: 82px;
+  height: 82px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+
+  display: grid;
+  place-items: center;
+
+  background: linear-gradient(135deg, #2563eb, #22c55e);
+  color: white;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.profile-hero h1 {
+  margin: 0 0 6px;
+  color: #071226;
+}
+
+.profile-hero p {
+  margin: 0 0 12px;
+  color: #334155;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.profile-stat-card {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.profile-stat-card p {
+  margin: 0 0 8px;
+  color: #334155;
+}
+
+.profile-stat-card strong {
+  font-size: 28px;
+  color: #071226;
+}
+
+.profile-menu {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-menu a {
+  padding: 15px 16px;
+  border-radius: 16px;
+  color: #0f172a;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+}
+
+.profile-menu .logout-button {
+  background: #dc2626;
+  color: white;
+  text-align: center;
+}
+
+.profile-menu .login-button {
+  background: #2563eb;
+  color: white;
+  text-align: center;
+}
