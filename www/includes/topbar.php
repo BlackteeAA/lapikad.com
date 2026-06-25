@@ -50,8 +50,8 @@ $userRole = $_SESSION["role"] ?? "";
   <nav class="side-links">
     <?php if ($isLoggedIn): ?>
       <a href="dashboard.php">หน้าหลัก</a>
-      <a href="places.php">สถานที่</a>
-      <a href="places.php">ภารกิจ</a>
+      <a href="places.php">สถานที่และภารกิจ</a>
+      <a href="rewards.php">รางวัล</a>
       <a href="profile.php">โปรไฟล์</a>
 
       <?php if ($userRole === "admin"): ?>
@@ -83,17 +83,17 @@ $userRole = $_SESSION["role"] ?? "";
     <span>โปรไฟล์</span>
   </a>
 
-  <a class="<?= activeTab(["places.php", "place.php", "quest.php"]) ?>" href="places.php">
+  <a class="<?= activeTab(["places.php", "place.php", "quest.php", "scan.php", "qr_claim.php", "complete_quest.php"]) ?>" href="places.php">
     <svg viewBox="0 0 24 24">
       <path d="M9 3h12v12H9V3zm2 2v8h8V5h-8zM3 9h4v12H3V9zm2 2v8h0v-8zm4 6h12v4H9v-4zm2 2h8v0h-8z"/>
     </svg>
     <span>ภารกิจ</span>
   </a>
 
-  <a class="<?= activeTab(["scan.php", "qr_claim.php", "complete_quest.php"]) ?>" href="places.php">
+  <a class="<?= activeTab(["rewards.php"]) ?>" href="rewards.php">
     <svg viewBox="0 0 24 24">
-      <path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM9 9h6v6H9V9z"/>
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
     </svg>
-    <span>สแกน</span>
+    <span>รางวัล</span>
   </a>
 </nav>

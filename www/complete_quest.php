@@ -63,31 +63,39 @@ if ($scannedCode === $targetCode) {
         $primaryLink = "dashboard.php";
         $primaryText = "กลับหน้าหลัก";
     } else {
-        $conn->begin_transaction();
+        try {
+            $conn->begin_transaction();
 
-        $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id) VALUES (?, ?)");
-        $stmt->bind_param("ii", $userId, $questId);
-        $stmt->execute();
+            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id) VALUES (?, ?)");
+            $stmt->bind_param("ii", $userId, $questId);
+            if (!$stmt->execute()) throw new Exception($conn->error);
 
-        $stmt = $conn->prepare("UPDATE users SET points = points + ? WHERE id=?");
-        $stmt->bind_param("ii", $quest["reward_points"], $userId);
-        $stmt->execute();
+            $stmt = $conn->prepare("UPDATE users SET points = points + ? WHERE id=?");
+            $stmt->bind_param("ii", $quest["reward_points"], $userId);
+            if (!$stmt->execute()) throw new Exception($conn->error);
 
-        $reason = "ทำภารกิจ QR Code: " . $quest["title"];
-        $stmt = $conn->prepare("
-            INSERT INTO point_logs (user_id, admin_id, points, reason)
-            VALUES (?, NULL, ?, ?)
-        ");
-        $stmt->bind_param("iis", $userId, $quest["reward_points"], $reason);
-        $stmt->execute();
+            $reason = "ทำภารกิจ QR Code: " . $quest["title"];
+            $stmt = $conn->prepare("
+                INSERT INTO point_logs (user_id, admin_id, points, reason)
+                VALUES (?, NULL, ?, ?)
+            ");
+            $stmt->bind_param("iis", $userId, $quest["reward_points"], $reason);
+            if (!$stmt->execute()) throw new Exception($conn->error);
 
-        $conn->commit();
+            $conn->commit();
 
-        $success = true;
-        $title = "ภารกิจสำเร็จ";
-        $message = "คุณได้รับ " . $quest["reward_points"] . " คะแนน";
-        $primaryLink = "dashboard.php";
-        $primaryText = "กลับหน้าหลัก";
+            $success = true;
+            $title = "ภารกิจสำเร็จ";
+            $message = "คุณได้รับ " . $quest["reward_points"] . " คะแนน";
+            $primaryLink = "dashboard.php";
+            $primaryText = "กลับหน้าหลัก";
+        } catch (Exception $e) {
+            $conn->rollback();
+            $title = "เกิดข้อผิดพลาด";
+            $message = "ไม่สามารถบันทึกภารกิจได้ กรุณาลองใหม่";
+            $primaryLink = "scan.php?id=" . $questId;
+            $primaryText = "ลองใหม่";
+        }
     }
 }
 ?>

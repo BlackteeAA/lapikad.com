@@ -12,9 +12,15 @@ if ($isLoggedIn) {
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
 
-    $completed = $conn
-      ->query("SELECT COUNT(*) AS total FROM user_quests WHERE user_id=" . $userId)
-      ->fetch_assoc()["total"];
+    if (!$user) {
+        session_destroy();
+        redirect("login.php");
+    }
+
+    $stmt2 = $conn->prepare("SELECT COUNT(*) AS total FROM user_quests WHERE user_id=?");
+    $stmt2->bind_param("i", $userId);
+    $stmt2->execute();
+    $completed = $stmt2->get_result()->fetch_assoc()["total"];
 } else {
     $completed = 0;
 }

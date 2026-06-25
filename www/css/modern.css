@@ -526,51 +526,7 @@ body{
   color: #fff;
 }
 
-body {
-  background: #eaf6ff;
-}
-
-html,
-body {
-  min-height: 100%;
-  background:
-    linear-gradient(
-      rgba(245, 250, 255, 0.72),
-      rgba(245, 250, 255, 0.72)
-    ),
-    url("../assets/images/lapikadbg.png") !important;
-  background-size: cover !important;
-  background-position: center bottom !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
-}
-
-body {
-  margin: 0;
-}
-
-.app {
-  max-width: 430px;
-  min-height: 100vh;
-  margin: 0 auto;
-  background: transparent !important;
-}
-
-.dashboard-page {
-  background: transparent !important;
-}
-
-/* Transparent UI - ไม่ขุ่น ไม่เบลอ */
-/* วางแทนตั้งแต่ส่วน Glass UI Theme ลงไปจนจบไฟล์ */
-
-/* ปิดชั้น overlay ที่ทำให้พื้นหลังขุ่น */
-html::before,
-body::before {
-  display: none !important;
-  content: none !important;
-}
-
-/* พื้นหลังเว็บ: เห็นภาพชัดขึ้น ไม่ขุ่น */
+/* พื้นหลังเว็บ */
 html,
 body {
   min-height: 100%;
@@ -583,7 +539,6 @@ body {
   background-size: cover !important;
   background-position: center bottom !important;
   background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
 }
 
 body {
