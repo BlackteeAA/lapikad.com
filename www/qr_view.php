@@ -25,6 +25,7 @@ $qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . ur
 <html lang="th">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QR Code | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">

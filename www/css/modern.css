@@ -685,7 +685,7 @@ textarea {
 /* Mobile Topbar + Bottom Navigation */
 
 .mobile-topbar {
-  height: 64px;
+  height: 72px;
   padding: 0 16px;
   margin: -18px -18px 20px;
   display: flex;
@@ -991,3 +991,204 @@ textarea {
   color: white;
   text-align: center;
 }
+
+/* Nav ขาวทึบ */
+.mobile-topbar {
+  background: #ffffff !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,.07) !important;
+  backdrop-filter: none !important;
+  justify-content: space-between;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Bottom nav เต็มจอ minimal */
+.bottom-nav {
+  background: #ffffff !important;
+  box-shadow: 0 -1px 0 rgba(0,0,0,.06) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+  border-radius: 0 !important;
+  height: 68px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 8px !important;
+  gap: 4px !important;
+}
+
+.bottom-nav a {
+  flex: 1;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 14px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all .2s;
+}
+
+.bottom-nav svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.bottom-nav a.active {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.app {
+  padding-bottom: 80px !important;
+}
+
+/* Font น้ำหนักบางลง */
+body { font-weight: 400; }
+strong, b { font-weight: 600; }
+h1, h2, h3, h4 { font-weight: 600; }
+
+/* ── Notification Bell ── */
+.notif-toggle { display: none; }
+
+.notif-wrap { position: relative; }
+
+.notif-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+}
+
+.notif-btn svg { width: 22px; height: 22px; }
+
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+.notif-panel {
+  position: fixed;
+  top: 68px;
+  right: 12px;
+  width: 310px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(15,23,42,.16);
+  z-index: 300;
+  overflow: hidden;
+  transform: translateY(-8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: .2s;
+}
+
+.notif-toggle:checked ~ * .notif-panel,
+.notif-toggle:checked + * .notif-panel {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ใช้ JS toggle แทน */
+.notif-panel.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.notif-header strong { font-size: 15px; color: #0f172a; }
+
+.notif-read-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.notif-list { max-height: 340px; overflow-y: auto; }
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f8fafc;
+  transition: background .15s;
+}
+
+.notif-item.unread { background: #eff6ff; }
+
+.notif-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #2563eb;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.notif-item:not(.unread) .notif-dot { background: #cbd5e1; }
+
+.notif-body span { font-size: 13px; color: #0f172a; display: block; line-height: 1.4; }
+.notif-body small { font-size: 11px; color: #64748b; margin-top: 3px; display: block; }
+
+.notif-empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.notif-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 290;
+  display: none;
+}
+
+.notif-toggle:checked ~ .notif-backdrop { display: block; }

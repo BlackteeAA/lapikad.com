@@ -50,6 +50,7 @@ $rewards = $conn->query("SELECT * FROM rewards ORDER BY cost_points ASC");
 <html lang="th">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>รางวัล | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
