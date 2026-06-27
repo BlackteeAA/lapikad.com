@@ -30,6 +30,7 @@ if ($isLoggedIn) {
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>โปรไฟล์ | ล่าพิกัด.com</title>
 
@@ -37,7 +38,7 @@ if ($isLoggedIn) {
   <link rel="stylesheet" href="css/modern.css">
 </head>
 
-<body>
+<body style="background:#f1f5f9!important;background-image:none!important">
   <main class="app profile-page">
     <?php include "includes/topbar.php"; ?>
 

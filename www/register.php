@@ -10,6 +10,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($name === "" || $email === "" || $password === "") {
         $msg = "กรุณากรอกข้อมูลให้ครบ";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $msg = "รูปแบบอีเมลไม่ถูกต้อง";
+    } elseif (mb_strlen($password) < 6) {
+        $msg = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
     } else {
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $conn->prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'user')");
@@ -30,6 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>สมัครสมาชิก | ล่าพิกัด.com</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/modern.css">
@@ -148,11 +153,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     .auth-btn:hover { opacity: .88; }
 
     .auth-alert {
-      background: #fee2e2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff1f2;
       color: #dc2626;
-      padding: 10px 14px;
-      border-radius: 12px;
+      border: 1px solid #fecdd3;
+      padding: 12px 14px;
+      border-radius: 14px;
       font-size: 14px;
+      font-weight: 500;
       margin-bottom: 16px;
     }
 
@@ -189,7 +199,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <h1>สมัครสมาชิก</h1>
 
       <?php if ($msg): ?>
-        <div class="auth-alert"><?= e($msg) ?></div>
+        <div class="auth-alert">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:#dc2626;flex-shrink:0">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+          <?= e($msg) ?>
+        </div>
       <?php endif; ?>
 
       <form method="post">

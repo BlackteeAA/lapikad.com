@@ -33,13 +33,14 @@ $locParts = array_filter([
     $place["location_text"]
 ]);
 $locText = implode(" ", $locParts) ?: "ไม่ระบุพื้นที่";
-$hasGps  = $place["lat"] && $place["lng"];
+$hasGps  = $place["lat"] !== null && $place["lng"] !== null;
 ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= e($place["name"]) ?> | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,12 +259,12 @@ $hasGps  = $place["lat"] && $place["lng"];
     navigator.geolocation.getCurrentPosition(pos => {
       const dist = haversine(pos.coords.latitude, pos.coords.longitude, PLACE_LAT, PLACE_LNG);
       const el = document.getElementById('gps-check');
-      if (dist <= 20) {
+      if (dist <= 0.1) {
         el.className = 'gps-check ok';
-        el.textContent = 'คุณอยู่ในรัศมี · ' + dist.toFixed(1) + ' กม.';
+        el.textContent = 'คุณอยู่ในรัศมี · ' + Math.round(dist * 1000) + ' ม.';
       } else {
         el.className = 'gps-check far';
-        el.textContent = 'อยู่นอกรัศมี 20 กม. (' + dist.toFixed(1) + ' กม.)';
+        el.textContent = 'ต้องอยู่ในรัศมี 100 ม. (ห่าง ' + Math.round(dist * 1000) + ' ม.)';
         document.querySelectorAll('.quest-icon-card:not(.done)').forEach(c => c.classList.add('locked'));
       }
     }, () => {

@@ -15,6 +15,7 @@ while ($u = $topUsers->fetch_assoc()) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ล่าพิกัด.com</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/modern.css">

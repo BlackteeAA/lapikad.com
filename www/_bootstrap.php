@@ -1,9 +1,10 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 function e($text) {
@@ -13,5 +14,14 @@ function e($text) {
 function redirect($path) {
     header("Location: " . $path);
     exit;
+}
+
+function csrf_token() {
+    return $_SESSION['csrf_token'] ?? '';
+}
+
+function csrf_verify() {
+    $token = $_POST['csrf_token'] ?? '';
+    return !empty($token) && hash_equals($_SESSION['csrf_token'] ?? '', $token);
 }
 ?>

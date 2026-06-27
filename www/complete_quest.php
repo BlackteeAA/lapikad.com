@@ -31,6 +31,12 @@ function extractQrCode($rawCode) {
     return strtoupper($rawCode);
 }
 
+if (!csrf_verify()) redirect("places.php");
+
+$lastAttempt = $_SESSION['last_quest_attempt'] ?? 0;
+if (time() - $lastAttempt < 5) redirect("places.php");
+$_SESSION['last_quest_attempt'] = time();
+
 $scannedCode = extractQrCode($rawCode);
 
 $stmt = $conn->prepare("SELECT * FROM quests WHERE id=?");
@@ -104,6 +110,7 @@ if ($scannedCode === $targetCode) {
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title><?= e($title) ?> | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">

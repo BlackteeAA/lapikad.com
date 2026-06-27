@@ -535,10 +535,10 @@ body {
       rgba(245, 250, 255, 0.28),
       rgba(245, 250, 255, 0.28)
     ),
-    url("../assets/images/lapikadbg.png") !important;
-  background-size: cover !important;
-  background-position: center bottom !important;
-  background-repeat: no-repeat !important;
+    url("../assets/images/lapikadbg.png");
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
 }
 
 body {
@@ -1027,6 +1027,7 @@ textarea {
   align-items: center !important;
   padding: 0 8px !important;
   gap: 4px !important;
+  z-index: 1000 !important;
 }
 
 .bottom-nav a {
@@ -1192,3 +1193,70 @@ h1, h2, h3, h4 { font-weight: 600; }
 }
 
 .notif-toggle:checked ~ .notif-backdrop { display: block; }
+
+/* ── Global Input Theme ── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  color: #0f172a;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+  box-sizing: border-box;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+textarea::placeholder { color: #94a3b8; }
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  background: #fff;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%2394a3b8' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+textarea { resize: vertical; min-height: 100px; }
+
+button[type="submit"],
+input[type="submit"] {
+  cursor: pointer;
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}

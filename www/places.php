@@ -3,23 +3,26 @@ require_once "_auth.php";
 
 $userId = intval($_SESSION["user_id"]);
 
-$places = $conn->query("
+$stmt_p = $conn->prepare("
     SELECT p.*,
            COUNT(DISTINCT q.id)  AS quest_count,
            COUNT(DISTINCT uq.id) AS done_count
     FROM places p
     LEFT JOIN quests q  ON q.place_id = p.id
-    LEFT JOIN user_quests uq ON uq.quest_id = q.id AND uq.user_id = $userId
+    LEFT JOIN user_quests uq ON uq.quest_id = q.id AND uq.user_id = ?
     GROUP BY p.id
     ORDER BY p.id
 ");
-$placeRows = $places->fetch_all(MYSQLI_ASSOC);
+$stmt_p->bind_param("i", $userId);
+$stmt_p->execute();
+$placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>สถานที่ | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,17 +83,33 @@ $placeRows = $places->fetch_all(MYSQLI_ASSOC);
     }
 
     .place-icon {
-      width: 52px;
-      height: 52px;
+      width: 70px;
+      height: 70px;
       border-radius: 16px;
       background: linear-gradient(135deg, #dbeafe, #eff6ff);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      overflow: hidden;
     }
 
+    .place-icon img { width:100%;height:100%;object-fit:cover; }
     .place-icon svg { width: 28px; height: 28px; fill: #2563eb; }
+
+    .cat-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 99px;
+      margin-bottom: 4px;
+    }
+
+    .cat-วัด\/ศาสนา, .cat-ชุมชน, .cat-พิพิธภัณฑ์ { background:#dcfce7; color:#15803d; }
+    .cat-ธรรมชาติ, .cat-แหล่งท่องเที่ยว        { background:#dcfce7; color:#15803d; }
+    .cat-ร้านอาหาร                                { background:#fff7ed; color:#c2410c; }
+    .cat-อื่นๆ                                    { background:#f1f5f9; color:#475569; }
 
     .place-body { flex: 1; min-width: 0; }
 
@@ -198,10 +217,17 @@ $placeRows = $places->fetch_all(MYSQLI_ASSOC);
            data-hasgps="<?= $hasGps ? '1' : '0' ?>">
 
           <div class="place-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            <?php if ($p["image_url"]): ?>
+              <img src="<?= e($p["image_url"]) ?>" alt="<?= e($p["name"]) ?>">
+            <?php else: ?>
+              <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            <?php endif; ?>
           </div>
 
           <div class="place-body">
+            <?php if ($p["category"]): ?>
+              <span class="cat-badge cat-<?= e($p["category"]) ?>"><?= e($p["category"]) ?></span>
+            <?php endif; ?>
             <h3><?= e($p["name"]) ?></h3>
             <p class="place-location">
               <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
@@ -255,6 +281,7 @@ $placeRows = $places->fetch_all(MYSQLI_ASSOC);
     cards.forEach(card => {
       const hasGps = card.dataset.hasgps === '1';
       const badge = card.querySelector('[data-dist]');
+      if (!badge) return;
 
       if (!hasGps) {
         badge.className = 'dist-badge none';

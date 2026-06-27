@@ -69,7 +69,7 @@ function notifTimeAgo($dt) {
             <div class="notif-empty">ยังไม่มีกิจกรรม</div>
           <?php else: ?>
             <?php foreach ($notifications as $n): ?>
-              <div class="notif-item" data-time="<?= $n['completed_at'] ?>">
+              <div class="notif-item" data-time="<?= strtotime($n['completed_at']) ?>">
                 <div class="notif-dot"></div>
                 <div class="notif-body">
                   <span>คุณสแกน "<strong><?= e($n['title']) ?></strong>" สำเร็จ</span>
@@ -158,11 +158,11 @@ function notifTimeAgo($dt) {
     panel.addEventListener('click', e => e.stopPropagation());
   }
 
-  const lastRead = localStorage.getItem('notif_last_read') || '2000-01-01';
+  const lastRead = parseInt(localStorage.getItem('notif_last_read') || '0');
   let unread = 0;
 
   items.forEach(el => {
-    const t = el.dataset.time;
+    const t = parseInt(el.dataset.time || '0');
     if (t > lastRead) {
       unread++;
       el.classList.add('unread');
@@ -176,7 +176,7 @@ function notifTimeAgo($dt) {
 })();
 
 function markAllRead() {
-  localStorage.setItem('notif_last_read', new Date().toISOString());
+  localStorage.setItem('notif_last_read', Math.floor(Date.now() / 1000).toString());
   const badge = document.getElementById('notif-badge');
   if (badge) badge.style.display = 'none';
   document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));

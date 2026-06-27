@@ -13,9 +13,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $user = $stmt->get_result()->fetch_assoc();
 
     if ($user && password_verify($password, $user["password_hash"])) {
+        session_regenerate_id(true);
         $_SESSION["user_id"] = $user["id"];
-        $_SESSION["name"] = $user["name"];
-        $_SESSION["role"] = $user["role"];
+        $_SESSION["name"]    = $user["name"];
+        $_SESSION["role"]    = $user["role"];
         redirect("dashboard.php");
     } else {
         $msg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
@@ -29,6 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>เข้าสู่ระบบ | ล่าพิกัด.com</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/modern.css">

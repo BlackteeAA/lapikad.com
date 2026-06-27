@@ -17,7 +17,7 @@ if (!$quest) {
     redirect("admin.php");
 }
 
-$baseUrl = "https://nag-florist-chance.ngrok-free.dev";
+$baseUrl = "https://xn--12c2b2a1a6ddp1n.com";
 $qrText = $baseUrl . "/qr_claim.php?code=" . urlencode($quest["target_code"]);
 $qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrText);
 ?>
@@ -26,12 +26,13 @@ $qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . ur
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QR Code | ล่าพิกัด.com</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/modern.css">
 </head>
-<body>
+<body style="background:#f1f5f9!important;background-image:none!important">
   <main class="app">
     <?php include "includes/topbar.php"; ?>
 
