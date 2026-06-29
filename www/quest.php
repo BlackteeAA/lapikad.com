@@ -81,6 +81,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !$alreadyDone) {
             $myPhoto     = $photoUrl;
             $msg         = "ภารกิจสำเร็จ! ได้รับ " . $quest["reward_points"] . " คะแนน";
             $msgType     = "good";
+
+            // Auto-post ขึ้น community ทุกครั้งที่เช็คอิน
+            $postContent = "เช็คอินที่ " . $quest["place_name"] . " — ภารกิจ: " . $quest["title"];
+            $placeId2    = $quest["place_id"];
+            $s = $conn->prepare("INSERT INTO posts (user_id, place_id, content, image_url) VALUES (?, ?, ?, ?)");
+            $s->bind_param("iiss", $userId, $placeId2, $postContent, $photoUrl);
+            $s->execute();
         } catch (Exception $e) {
             $conn->rollback();
             $msg = "เกิดข้อผิดพลาด กรุณาลองใหม่";

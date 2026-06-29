@@ -59,6 +59,19 @@ $stmt2->execute();
 $redeemCount = $stmt2->get_result()->fetch_assoc()["total"];
 
 $rewards = $conn->query("SELECT * FROM rewards ORDER BY cost_points ASC")->fetch_all(MYSQLI_ASSOC);
+
+$tab = $_GET["tab"] ?? "list";
+
+$stmt_h = $conn->prepare("
+    SELECT rr.redeemed_at, r.name, r.cost_points, r.image_url
+    FROM reward_redemptions rr
+    JOIN rewards r ON r.id = rr.reward_id
+    WHERE rr.user_id = ?
+    ORDER BY rr.redeemed_at DESC
+");
+$stmt_h->bind_param("i", $userId);
+$stmt_h->execute();
+$history = $stmt_h->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -289,6 +302,50 @@ $rewards = $conn->query("SELECT * FROM rewards ORDER BY cost_points ASC")->fetch
       </div>
     </div>
 
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:2px solid #e2e8f0;margin-bottom:18px">
+      <a href="rewards.php?tab=list" style="flex:1;text-align:center;padding:12px 0;font-size:14px;font-weight:600;text-decoration:none;color:<?= $tab==='list'?'#2563eb':'#94a3b8' ?>;border-bottom:<?= $tab==='list'?'2px solid #2563eb':'2px solid transparent' ?>;margin-bottom:-2px">
+        รายการรางวัล
+      </a>
+      <a href="rewards.php?tab=history" style="flex:1;text-align:center;padding:12px 0;font-size:14px;font-weight:600;text-decoration:none;color:<?= $tab==='history'?'#2563eb':'#94a3b8' ?>;border-bottom:<?= $tab==='history'?'2px solid #2563eb':'2px solid transparent' ?>;margin-bottom:-2px">
+        แลกไปแล้ว <?php if(count($history)>0): ?><span style="background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:11px"><?= count($history) ?></span><?php endif; ?>
+      </a>
+    </div>
+
+    <?php if ($tab === 'history'): ?>
+      <!-- History tab -->
+      <?php if (empty($history)): ?>
+        <div style="text-align:center;padding:40px 20px;background:#fff;border-radius:20px;color:#94a3b8;font-size:14px">
+          ยังไม่มีประวัติการแลกรางวัล
+        </div>
+      <?php else: ?>
+        <div style="display:grid;gap:10px">
+          <?php foreach ($history as $h): ?>
+            <div style="background:#fff;border-radius:18px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
+              <div style="width:60px;height:60px;border-radius:14px;overflow:hidden;flex-shrink:0;background:#f1f5f9;display:flex;align-items:center;justify-content:center">
+                <?php if ($h["image_url"]): ?>
+                  <img src="<?= e($h["image_url"]) ?>" style="width:100%;height:100%;object-fit:cover">
+                <?php else: ?>
+                  <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:#94a3b8"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5zm9 14H5V9h14v10z"/></svg>
+                <?php endif; ?>
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:600;color:#0f172a"><?= e($h["name"]) ?></div>
+                <div style="font-size:13px;color:#64748b;margin-top:2px"><?= number_format($h["cost_points"]) ?> คะแนน</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:12px;color:#16a34a;font-weight:600">แลกเมื่อ</div>
+                <div style="font-size:12px;color:#64748b;margin-top:2px">
+                  <?= date("j M Y", strtotime($h["redeemed_at"])) ?>
+                </div>
+                <div style="font-size:11px;color:#94a3b8"><?= date("H:i", strtotime($h["redeemed_at"])) ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+    <?php else: ?>
     <!-- Rewards list -->
     <div class="rw-head">
       <h2>รางวัลทั้งหมด</h2>
@@ -346,6 +403,8 @@ $rewards = $conn->query("SELECT * FROM rewards ORDER BY cost_points ASC")->fetch
         </div>
       <?php endforeach; ?>
     </div>
+
+    <?php endif; // end tab list ?>
 
   </main>
 </body>

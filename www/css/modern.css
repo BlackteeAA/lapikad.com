@@ -711,15 +711,28 @@ textarea {
 
 .brand-circle,
 .top-profile {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
+  display: block !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
   background: linear-gradient(135deg, #2563eb, #22c55e);
   color: white;
   font-weight: 800;
   text-decoration: none;
+  flex-shrink: 0 !important;
+  line-height: 36px;
+  text-align: center;
+}
+
+.top-profile img {
+  display: block !important;
+  width: 36px !important;
+  height: 36px !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
 }
 
 .hamburger-btn {

@@ -83,8 +83,19 @@ function notifTimeAgo($dt) {
     </div>
     <?php endif; ?>
 
-    <a href="profile.php" class="top-profile">
-      <?= e(mb_substr($userName, 0, 1, "UTF-8")) ?>
+    <a href="profile.php" class="top-profile" id="top-profile-btn">
+      <?php
+      $topAvatarUrl = null;
+      if ($isLoggedIn && isset($conn)) {
+          $topUid = intval($_SESSION["user_id"]);
+          $topR   = $conn->query("SELECT avatar_url FROM users WHERE id=$topUid");
+          if ($topR) { $r = $topR->fetch_assoc(); $topAvatarUrl = $r["avatar_url"] ?? null; }
+      }
+      if ($topAvatarUrl): ?>
+        <img src="<?= e($topAvatarUrl) ?>" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+      <?php else: ?>
+        <?= e(mb_substr($userName, 0, 1, "UTF-8")) ?>
+      <?php endif; ?>
     </a>
   </div>
 </header>
@@ -126,17 +137,21 @@ function notifTimeAgo($dt) {
     <svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10.5z"/></svg>
     <span>หน้าหลัก</span>
   </a>
-  <a class="<?= activeTab(["profile.php","login.php","register.php"]) ?>" href="profile.php">
-    <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14z"/></svg>
-    <span>โปรไฟล์</span>
-  </a>
   <a class="<?= activeTab(["places.php","place.php","quest.php","scan.php","qr_claim.php","complete_quest.php"]) ?>" href="places.php">
     <svg viewBox="0 0 24 24"><path d="M9 3h12v12H9V3zm2 2v8h8V5h-8zM3 9h4v12H3V9zm2 2v8h0v-8zm4 6h12v4H9v-4zm2 2h8v0h-8z"/></svg>
     <span>ภารกิจ</span>
   </a>
+  <a class="<?= activeTab(["community.php"]) ?>" href="community.php">
+    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+    <span>ชุมชน</span>
+  </a>
   <a class="<?= activeTab(["rewards.php"]) ?>" href="rewards.php">
     <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
     <span>รางวัล</span>
+  </a>
+  <a class="<?= activeTab(["profile.php","login.php","register.php"]) ?>" href="profile.php">
+    <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14z"/></svg>
+    <span>ฉัน</span>
   </a>
 </nav>
 
