@@ -10,6 +10,7 @@ $stmt_p = $conn->prepare("
     FROM places p
     LEFT JOIN quests q  ON q.place_id = p.id
     LEFT JOIN user_quests uq ON uq.quest_id = q.id AND uq.user_id = ?
+    WHERE p.is_active = 1
     GROUP BY p.id
     ORDER BY p.id
 ");

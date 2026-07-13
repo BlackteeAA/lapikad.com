@@ -37,8 +37,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
 // Feed query
 $tabSql = match($tab) {
     "following" => "AND EXISTS (SELECT 1 FROM user_follows f WHERE f.follower_id=$userId AND f.following_id=p.user_id)",
+    "nearby"    => "AND pl.lat IS NOT NULL AND pl.lng IS NOT NULL",
     default     => ""
 };
+
+// "foryou" pulls a wider candidate pool so the ranking algorithm has posts to sort through
+$poolLimit = $tab === "foryou" ? 60 : 30;
 
 $posts = $conn->query("
     SELECT p.*,
@@ -47,14 +51,47 @@ $posts = $conn->query("
            pl.district, pl.province, pl.lat, pl.lng,
            (SELECT COUNT(*) FROM post_likes l WHERE l.post_id=p.id) AS likes,
            (SELECT COUNT(*) FROM post_likes l WHERE l.post_id=p.id AND l.user_id=$userId) AS my_like,
-           (SELECT COUNT(*) FROM user_follows f WHERE f.follower_id=$userId AND f.following_id=p.user_id) AS i_follow
+           (SELECT COUNT(*) FROM user_follows f WHERE f.follower_id=$userId AND f.following_id=p.user_id) AS i_follow,
+           (SELECT COUNT(*) FROM post_comments c WHERE c.post_id=p.id) AS comments
     FROM posts p
     JOIN users u ON u.id=p.user_id
     LEFT JOIN places pl ON pl.id=p.place_id
     WHERE 1=1 $tabSql
     ORDER BY p.created_at DESC
-    LIMIT 30
+    LIMIT $poolLimit
 ")->fetch_all(MYSQLI_ASSOC);
+
+// Hacker-News-style "hot" score: engagement decayed by age, so fresh popular
+// posts float up without letting old posts dominate forever.
+function hotScore($likes, $comments, $createdAt) {
+    $ageHours = max(0, (time() - strtotime($createdAt)) / 3600);
+    $points   = $likes + ($comments * 2);
+    return $points / pow($ageHours + 2, 1.5);
+}
+
+if ($tab === "foryou") {
+    // Categories the user actually engages with, inferred from completed quests
+    $topCats = array_column($conn->query("
+        SELECT pl.category, COUNT(*) AS c
+        FROM user_quests uq
+        JOIN quests q  ON q.id = uq.quest_id
+        JOIN places pl ON pl.id = q.place_id
+        WHERE uq.user_id = $userId AND pl.category IS NOT NULL
+        GROUP BY pl.category
+        ORDER BY c DESC
+        LIMIT 3
+    ")->fetch_all(MYSQLI_ASSOC), "category");
+
+    foreach ($posts as &$p) {
+        $score = hotScore($p["likes"], $p["comments"], $p["created_at"]);
+        if ($p["i_follow"] > 0) $score *= 1.4;                          // ติดตามผู้เขียนอยู่
+        if ($p["pcat"] && in_array($p["pcat"], $topCats)) $score *= 1.2; // ตรงหมวดที่สนใจ
+        $p["_score"] = $score;
+    }
+    unset($p);
+    usort($posts, fn($a, $b) => $b["_score"] <=> $a["_score"]);
+    $posts = array_slice($posts, 0, 30);
+}
 
 // Places for select
 $places = $conn->query("SELECT id, name FROM places ORDER BY name")->fetch_all(MYSQLI_ASSOC);
@@ -160,6 +197,23 @@ function timeAgo($dt) {
     .cm-meta { flex:1;min-width:0; }
     .cm-meta strong { display:block;font-size:14px;font-weight:600;color:#0f172a; }
     .cm-meta span   { font-size:12px;color:#94a3b8; }
+
+    .cm-gps-status {
+      display:flex;align-items:center;gap:8px;
+      padding:10px 14px;border-radius:12px;
+      font-size:13px;font-weight:500;margin-bottom:14px;
+    }
+    .cm-gps-status.loading { background:#eff6ff;color:#2563eb; }
+    .cm-gps-status.ok      { background:#f0fdf4;color:#16a34a; }
+    .cm-gps-status.error   { background:#fff7ed;color:#ea580c; }
+    .cm-gps-dot { width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0; }
+
+    .cm-dist {
+      font-size:11px;font-weight:600;color:#16a34a;
+      background:#f0fdf4;padding:3px 8px;border-radius:99px;flex-shrink:0;
+    }
+    .cm-dist.far  { background:#fff1f2;color:#e11d48; }
+    .cm-dist.none { background:#f8fafc;color:#94a3b8; }
 
     .cm-follow-btn {
       padding:6px 14px;border-radius:999px;
@@ -333,6 +387,12 @@ function timeAgo($dt) {
       <button class="cm-tab <?= $tab==='nearby'?'active':'' ?>" onclick="switchTab('nearby')">ใกล้ตัวคุณ</button>
     </div>
 
+    <?php if ($tab === "nearby"): ?>
+      <div class="cm-gps-status loading" id="cm-gps-status">
+        <span class="cm-gps-dot"></span><span>กำลังระบุตำแหน่ง GPS...</span>
+      </div>
+    <?php endif; ?>
+
     <!-- Feed -->
     <?php if (empty($posts)): ?>
       <div class="cm-empty">
@@ -343,10 +403,10 @@ function timeAgo($dt) {
         $isMe    = $p["user_id"] == $userId;
         $liked   = $p["my_like"] > 0;
         $follows = $p["i_follow"] > 0;
-        $hot     = $p["likes"] >= 5;
+        $hot     = hotScore($p["likes"], $p["comments"], $p["created_at"]) >= 2.5;
         $tags    = array_filter([$p["pcat"], $p["district"] ? "อ.".$p["district"] : null]);
       ?>
-        <div class="cm-card" data-post="<?= $p["id"] ?>">
+        <div class="cm-card" data-post="<?= $p["id"] ?>" data-lat="<?= $p["lat"] ?: '' ?>" data-lng="<?= $p["lng"] ?: '' ?>">
           <div class="cm-card-head">
             <a href="user_profile.php?id=<?= $p["user_id"] ?>" style="text-decoration:none;flex-shrink:0">
               <div class="cm-avatar">
@@ -361,6 +421,9 @@ function timeAgo($dt) {
               <strong><?= e($p["uname"]) ?></strong>
               <span><?= $p["pname"] ? e($p["pname"])." · " : "" ?><?= timeAgo($p["created_at"]) ?></span>
             </div>
+            <?php if ($tab === "nearby"): ?>
+              <span class="cm-dist" data-dist>...</span>
+            <?php endif; ?>
             <?php if (!$isMe): ?>
               <button class="cm-follow-btn <?= $follows?'following':'' ?>"
                       onclick="toggleFollow(<?= $p["user_id"] ?>, this)">
@@ -414,7 +477,7 @@ function timeAgo($dt) {
               <svg viewBox="0 0 24 24" style="fill:none;stroke:#64748b;stroke-width:2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
-              <span class="cmt-count"><?= $conn->query("SELECT COUNT(*) AS c FROM post_comments WHERE post_id=".$p["id"])->fetch_assoc()["c"] ?></span>
+              <span class="cmt-count"><?= $p["comments"] ?></span>
             </button>
             <button class="cm-action" onclick="sharePost(<?= $p["id"] ?>, '<?= e(addslashes($p["pname"] ?? "ล่าพิกัด.com")) ?>')">
               <svg viewBox="0 0 24 24" style="fill:none;stroke:#64748b;stroke-width:2">
@@ -486,6 +549,54 @@ function timeAgo($dt) {
   function switchTab(tab) {
     location.href = 'community.php?tab=' + tab;
   }
+
+  function haversine(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 +
+              Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function setGpsStatus(type, msg) {
+    const el = document.getElementById('cm-gps-status');
+    if (!el) return;
+    el.className = 'cm-gps-status ' + type;
+    el.innerHTML = '<span class="cm-gps-dot"></span><span>' + msg + '</span>';
+  }
+
+  function sortNearby(userLat, userLng) {
+    const cards  = Array.from(document.querySelectorAll('.cm-card'));
+    const parent = cards[0] && cards[0].parentElement;
+    if (!parent) { setGpsStatus('ok', 'ไม่มีโพสต์ที่ระบุตำแหน่งไว้'); return; }
+
+    cards.forEach(card => {
+      const dist  = haversine(userLat, userLng, parseFloat(card.dataset.lat), parseFloat(card.dataset.lng));
+      card.dataset.distance = dist;
+      const badge = card.querySelector('[data-dist]');
+      if (badge) {
+        badge.textContent = dist.toFixed(1) + ' กม.';
+        badge.classList.toggle('far', dist > 50);
+      }
+    });
+
+    cards.sort((a, b) => parseFloat(a.dataset.distance) - parseFloat(b.dataset.distance));
+    cards.forEach(card => parent.appendChild(card));
+
+    setGpsStatus('ok', 'ระบุตำแหน่งสำเร็จ · เรียงตามระยะทางใกล้สุด');
+  }
+
+  <?php if ($tab === "nearby"): ?>
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => sortNearby(pos.coords.latitude, pos.coords.longitude),
+      ()  => setGpsStatus('error', 'ไม่สามารถระบุตำแหน่งได้ — แสดงโพสต์ตามลำดับล่าสุด')
+    );
+  } else {
+    setGpsStatus('error', 'อุปกรณ์ไม่รองรับ GPS');
+  }
+  <?php endif; ?>
 
   async function toggleLike(postId, btn) {
     const res  = await fetch('api_like.php', {
