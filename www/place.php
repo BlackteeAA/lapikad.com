@@ -11,11 +11,14 @@ $place = $stmt->get_result()->fetch_assoc();
 
 if (!$place) redirect("places.php");
 
+$dailyRefresh = isDailyRefreshQuest($place["category"] ?? "");
+$dateFilter   = $dailyRefresh ? "AND uq.completed_date = CURDATE()" : "";
+
 $stmt = $conn->prepare("
     SELECT q.*,
            CASE WHEN uq.id IS NULL THEN 0 ELSE 1 END AS done
     FROM quests q
-    LEFT JOIN user_quests uq ON uq.quest_id=q.id AND uq.user_id=?
+    LEFT JOIN user_quests uq ON uq.quest_id=q.id AND uq.user_id=? $dateFilter
     WHERE q.place_id=?
     ORDER BY q.id
 ");
@@ -206,6 +209,9 @@ $hasGps  = $place["lat"] !== null && $place["lng"] !== null;
         <div class="progress-fill" style="width:<?= $pct ?>%"></div>
       </div>
       <p class="progress-meta">สำเร็จแล้ว <?= $done ?>/<?= $total ?> ภารกิจ (<?= $pct ?>%)</p>
+      <?php if ($dailyRefresh): ?>
+        <p class="progress-meta" style="color:#2563eb">ภารกิจร้านนี้ทำซ้ำได้ทุกวัน</p>
+      <?php endif; ?>
     </div>
 
     <div class="quest-section">

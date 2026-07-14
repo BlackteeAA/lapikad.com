@@ -25,9 +25,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $msg = "เพิ่มคะแนนสำเร็จ";
         } else { $msg = "ข้อมูลไม่ถูกต้อง"; $msgType = "bad"; }
     }
+
+    if ($action === "toggle_ban") {
+        $targetUserId = intval($_POST["user_id"] ?? 0);
+        if ($targetUserId > 0 && $targetUserId === intval($_SESSION["user_id"])) {
+            $msg = "ไม่สามารถระงับบัญชีตัวเองได้";
+            $msgType = "bad";
+        } elseif ($targetUserId > 0) {
+            $stmt = $conn->prepare("UPDATE users SET is_banned = 1 - is_banned WHERE id=?");
+            $stmt->bind_param("i", $targetUserId);
+            $stmt->execute();
+
+            // Force logout everywhere: drop any remember-me sessions for this user.
+            $stmt = $conn->prepare("DELETE FROM remember_tokens WHERE user_id=?");
+            $stmt->bind_param("i", $targetUserId);
+            $stmt->execute();
+
+            $msg = "อัพเดทสถานะผู้ใช้สำเร็จ";
+        }
+    }
 }
 
-$users = $conn->query("SELECT id,name,email,role,points,avatar_url FROM users ORDER BY points DESC")->fetch_all(MYSQLI_ASSOC);
+$users = $conn->query("SELECT id,name,email,role,points,avatar_url,is_banned FROM users ORDER BY points DESC")->fetch_all(MYSQLI_ASSOC);
 $logs  = $conn->query("SELECT pl.*,u.name AS uname FROM point_logs pl JOIN users u ON u.id=pl.user_id ORDER BY pl.id DESC LIMIT 15")->fetch_all(MYSQLI_ASSOC);
 $autoOpen = $_GET["open"] ?? "";
 ?>
@@ -85,6 +104,14 @@ $autoOpen = $_GET["open"] ?? "";
     .pts { text-align:right;font-size:10.5px;color:#64748b;white-space:nowrap; }
     .pts b { display:block;font-size:13px;color:#0f172a;margin-top:1px; }
 
+    .row-item.banned { opacity:.55; }
+    .ban-pill {
+      font-size:10.5px;font-weight:600;padding:6px 12px;border-radius:99px;
+      border:1.5px solid;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;
+    }
+    .ban-pill.ban   { background:#fff;color:#e11d48;border-color:#fecdd3; }
+    .ban-pill.unban { background:#fff1f2;color:#e11d48;border-color:#e11d48; }
+
     .pill-btn {
       font-size:11.5px;font-weight:600;background:#eff6ff;color:#2563eb;
       border:1.5px solid #bfdbfe;border-radius:99px;padding:7px 12px;cursor:pointer;
@@ -138,8 +165,8 @@ $autoOpen = $_GET["open"] ?? "";
 
     <div class="pg-card">
       <div id="users-list">
-        <?php foreach ($users as $u): ?>
-          <div class="row-item" data-search="<?= e(mb_strtolower($u["name"] . " " . $u["email"], "UTF-8")) ?>">
+        <?php foreach ($users as $u): $isSelf = $u["id"] === intval($_SESSION["user_id"]); ?>
+          <div class="row-item <?= !empty($u["is_banned"]) ? 'banned' : '' ?>" data-search="<?= e(mb_strtolower($u["name"] . " " . $u["email"], "UTF-8")) ?>">
             <div class="avatar">
               <?php if (!empty($u["avatar_url"])): ?>
                 <img src="<?= e($u["avatar_url"]) ?>" style="width:100%;height:100%;object-fit:cover">
@@ -148,7 +175,7 @@ $autoOpen = $_GET["open"] ?? "";
               <?php endif; ?>
             </div>
             <div class="row-info">
-              <strong><?= e($u["name"]) ?></strong>
+              <strong><?= e($u["name"]) ?><?= !empty($u["is_banned"]) ? ' · ถูกระงับ' : '' ?></strong>
               <span><?= e($u["email"]) ?></span>
             </div>
             <div class="pts">
@@ -156,6 +183,17 @@ $autoOpen = $_GET["open"] ?? "";
               <b>★ <?= number_format($u["points"]) ?></b>
             </div>
             <button type="button" class="pill-btn" onclick="quickAddPoints(<?= $u["id"] ?>)">เพิ่มคะแนน</button>
+            <?php if (!$isSelf): ?>
+              <form method="post">
+                <input type="hidden" name="action" value="toggle_ban">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                <input type="hidden" name="user_id" value="<?= $u["id"] ?>">
+                <button type="submit" class="ban-pill <?= !empty($u["is_banned"]) ? 'unban' : 'ban' ?>"
+                        onclick="return confirm('<?= !empty($u["is_banned"]) ? 'ปลดระงับ' : 'ระงับ' ?>บัญชี <?= e(addslashes($u["name"])) ?>?')">
+                  <?= !empty($u["is_banned"]) ? "ปลดระงับ" : "ระงับ" ?>
+                </button>
+              </form>
+            <?php endif; ?>
             <form method="post" id="qform-<?= $u["id"] ?>" style="display:none">
               <input type="hidden" name="action" value="add_points">
               <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">

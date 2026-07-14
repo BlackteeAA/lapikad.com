@@ -3,24 +3,42 @@ require_once "_db.php";
 
 $msg = "";
 
+if (!isset($_SESSION["user_id"])) {
+    tryRememberLogin($conn);
+}
+if (isset($_SESSION["user_id"])) {
+    redirect("dashboard.php");
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    if (!csrf_verify()) redirect("login.php");
+
     $email = strtolower(trim($_POST["email"] ?? ""));
     $password = $_POST["password"] ?? "";
 
-    $stmt = $conn->prepare("SELECT id, name, password_hash, role, points FROM users WHERE email=?");
+    $stmt = $conn->prepare("SELECT id, name, password_hash, role, is_banned FROM users WHERE email=?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
 
     if ($user && password_verify($password, $user["password_hash"])) {
-        session_regenerate_id(true);
-        $_SESSION["user_id"] = $user["id"];
-        $_SESSION["name"]    = $user["name"];
-        $_SESSION["role"]    = $user["role"];
-        redirect("dashboard.php");
+        if (!empty($user["is_banned"])) {
+            $msg = "บัญชีนี้ถูกระงับการใช้งาน";
+        } else {
+            session_regenerate_id(true);
+            $_SESSION["user_id"] = $user["id"];
+            $_SESSION["name"]    = $user["name"];
+            $_SESSION["role"]    = $user["role"];
+            if (!empty($_POST["remember"])) {
+                setRememberCookie($conn, $user["id"]);
+            }
+            redirect("dashboard.php");
+        }
     } else {
         $msg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
     }
+} elseif (($_GET["banned"] ?? "") === "1") {
+    $msg = "บัญชีนี้ถูกระงับการใช้งาน";
 }
 ?>
 <!DOCTYPE html>
@@ -111,7 +129,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       margin-bottom: 6px;
     }
 
-    .auth-card input {
+    .auth-card input:not([type=checkbox]) {
       width: 100%;
       padding: 13px 16px;
       border: 1.5px solid #bfdbfe;
@@ -123,6 +141,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       margin-bottom: 16px;
       outline: none;
       transition: border-color .2s, box-shadow .2s;
+    }
+
+    .auth-card input[type=checkbox] {
+      width: 16px;
+      height: 16px;
+      accent-color: #2563eb;
     }
 
     .auth-card input:focus {
@@ -197,14 +221,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <?php endif; ?>
 
       <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+
         <label>อีเมล</label>
         <input name="email" type="email" placeholder="กรอกอีเมล" required>
 
         <label>รหัสผ่าน</label>
         <input name="password" type="password" placeholder="กรอกรหัสผ่าน" required>
 
+        <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin:-6px 0 16px">
+          <input type="checkbox" name="remember" value="1" style="width:auto;margin:0">
+          จดจำการเข้าสู่ระบบ
+        </label>
+
         <button class="auth-btn" type="submit">เข้าสู่ระบบ</button>
       </form>
+
+      <div class="auth-bottom">
+        <a href="forgot_password.php">ลืมรหัสผ่าน?</a>
+      </div>
 
       <div class="auth-bottom">
         ยังไม่มีบัญชี?<a href="register.php">สมัครบัญชี</a>

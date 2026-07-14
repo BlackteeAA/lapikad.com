@@ -20,11 +20,12 @@ $visitedPlaces = $stmt3->get_result()->fetch_assoc()["total"];
 
 $placesAll = $conn->query("
     SELECT p.*,
-           COUNT(DISTINCT q.id)  AS quest_count,
-           COUNT(DISTINCT uq.id) AS done_count
+           COUNT(DISTINCT q.id) AS quest_count,
+           COUNT(DISTINCT CASE WHEN uq.id IS NOT NULL THEN q.id END) AS done_count
     FROM places p
     LEFT JOIN quests q ON q.place_id = p.id
     LEFT JOIN user_quests uq ON uq.quest_id = q.id AND uq.user_id = $userId
+        AND (p.category != '" . SHOP_QUEST_CATEGORY . "' OR uq.completed_date = CURDATE())
     GROUP BY p.id ORDER BY p.id
 ")->fetch_all(MYSQLI_ASSOC);
 

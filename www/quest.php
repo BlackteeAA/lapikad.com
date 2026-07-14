@@ -7,7 +7,7 @@ $msg     = "";
 $msgType = "bad";
 
 $stmt = $conn->prepare("
-    SELECT q.*, p.name AS place_name, p.id AS place_id
+    SELECT q.*, p.name AS place_name, p.id AS place_id, p.category AS place_category
     FROM quests q JOIN places p ON p.id=q.place_id WHERE q.id=?
 ");
 $stmt->bind_param("i", $questId);
@@ -16,7 +16,13 @@ $quest = $stmt->get_result()->fetch_assoc();
 
 if (!$quest) redirect("places.php");
 
-$stmt = $conn->prepare("SELECT id, photo_url FROM user_quests WHERE user_id=? AND quest_id=?");
+$dailyRefresh = isDailyRefreshQuest($quest["place_category"] ?? "");
+
+if ($dailyRefresh) {
+    $stmt = $conn->prepare("SELECT id, photo_url FROM user_quests WHERE user_id=? AND quest_id=? AND completed_date=CURDATE()");
+} else {
+    $stmt = $conn->prepare("SELECT id, photo_url FROM user_quests WHERE user_id=? AND quest_id=?");
+}
 $stmt->bind_param("ii", $userId, $questId);
 $stmt->execute();
 $doneRow     = $stmt->get_result()->fetch_assoc();
@@ -63,7 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !$alreadyDone) {
         try {
             $conn->begin_transaction();
 
-            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id, photo_url) VALUES (?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id, photo_url, completed_date) VALUES (?, ?, ?, CURDATE())");
             $stmt->bind_param("iis", $userId, $questId, $photoUrl);
             if (!$stmt->execute()) throw new Exception();
 
@@ -207,7 +213,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !$alreadyDone) {
         <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
         <div>
           <span>+<?= e($quest["reward_points"]) ?> คะแนน</span><br>
-          <small>รางวัลเมื่อสำเร็จ</small>
+          <small><?= $dailyRefresh ? "รางวัลเมื่อสำเร็จ · ทำซ้ำได้ทุกวัน" : "รางวัลเมื่อสำเร็จ" ?></small>
         </div>
       </div>
     </div>
@@ -224,6 +230,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !$alreadyDone) {
         </div>
         <h2 style="font-size:18px;font-weight:700;color:#0f172a;margin:0 0 6px">ภารกิจสำเร็จแล้ว</h2>
         <p style="font-size:14px;color:#64748b;margin:0">คุณได้รับ <?= e($quest["reward_points"]) ?> คะแนนจากภารกิจนี้</p>
+        <?php if ($dailyRefresh): ?>
+          <p style="font-size:12.5px;color:#2563eb;margin:6px 0 0">ภารกิจร้านค้านี้ทำซ้ำได้ทุกวัน · พรุ่งนี้กลับมาทำใหม่ได้</p>
+        <?php endif; ?>
 
         <?php if ($myPhoto): ?>
           <img src="<?= e($myPhoto) ?>" alt="Check-in photo" class="done-photo">

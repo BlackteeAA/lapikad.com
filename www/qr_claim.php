@@ -15,7 +15,20 @@ if ($code !== "") {
     $quest = $stmt->get_result()->fetch_assoc();
 
     if ($quest) {
-        $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=?");
+        $placeCategory = null;
+        if ($quest["place_id"]) {
+            $sp = $conn->prepare("SELECT category FROM places WHERE id=?");
+            $sp->bind_param("i", $quest["place_id"]);
+            $sp->execute();
+            $placeCategory = $sp->get_result()->fetch_assoc()["category"] ?? null;
+        }
+        $dailyRefresh = isDailyRefreshQuest($placeCategory ?? "");
+
+        if ($dailyRefresh) {
+            $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=? AND completed_date=CURDATE()");
+        } else {
+            $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=?");
+        }
         $stmt->bind_param("ii", $userId, $quest["id"]);
         $stmt->execute();
         $alreadyDone = (bool)$stmt->get_result()->fetch_assoc();
@@ -23,11 +36,13 @@ if ($code !== "") {
         if ($alreadyDone) {
             $success = true;
             $title = "ทำภารกิจแล้ว";
-            $message = "คุณได้รับคะแนนจาก QR นี้ไปแล้ว";
+            $message = $dailyRefresh
+                ? "คุณทำภารกิจนี้ไปแล้ววันนี้ พรุ่งนี้กลับมาทำใหม่ได้"
+                : "คุณได้รับคะแนนจาก QR นี้ไปแล้ว";
         } else {
             $conn->begin_transaction();
 
-            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id) VALUES (?, ?)");
+            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id, completed_date) VALUES (?, ?, CURDATE())");
             $stmt->bind_param("ii", $userId, $quest["id"]);
             $stmt->execute();
 

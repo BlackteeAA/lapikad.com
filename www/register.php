@@ -4,6 +4,8 @@ require_once "_db.php";
 $msg = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    if (!csrf_verify()) redirect("register.php");
+
     $name = trim($_POST["name"] ?? "");
     $email = strtolower(trim($_POST["email"] ?? ""));
     $password = $_POST["password"] ?? "";
@@ -208,6 +210,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <?php endif; ?>
 
       <form method="post">
+        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <label>ชื่อผู้ใช้</label>
         <input name="name" placeholder="กรอกชื่อผู้ใช้" required>
 

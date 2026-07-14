@@ -5,11 +5,12 @@ $userId = intval($_SESSION["user_id"]);
 
 $stmt_p = $conn->prepare("
     SELECT p.*,
-           COUNT(DISTINCT q.id)  AS quest_count,
-           COUNT(DISTINCT uq.id) AS done_count
+           COUNT(DISTINCT q.id) AS quest_count,
+           COUNT(DISTINCT CASE WHEN uq.id IS NOT NULL THEN q.id END) AS done_count
     FROM places p
     LEFT JOIN quests q  ON q.place_id = p.id
     LEFT JOIN user_quests uq ON uq.quest_id = q.id AND uq.user_id = ?
+        AND (p.category != '" . SHOP_QUEST_CATEGORY . "' OR uq.completed_date = CURDATE())
     WHERE p.is_active = 1
     GROUP BY p.id
     ORDER BY p.id
@@ -105,11 +106,13 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
       padding: 3px 9px;
       border-radius: 99px;
       margin-bottom: 4px;
+      background: #f1f5f9;
+      color: #475569;
     }
 
     .cat-วัด\/ศาสนา, .cat-ชุมชน, .cat-พิพิธภัณฑ์ { background:#dcfce7; color:#15803d; }
     .cat-ธรรมชาติ, .cat-แหล่งท่องเที่ยว        { background:#dcfce7; color:#15803d; }
-    .cat-ร้านอาหาร                                { background:#fff7ed; color:#c2410c; }
+    .cat-ร้านค้า\/ร้านอาหาร                         { background:#fff7ed; color:#c2410c; }
     .cat-อื่นๆ                                    { background:#f1f5f9; color:#475569; }
 
     .place-body { flex: 1; min-width: 0; }

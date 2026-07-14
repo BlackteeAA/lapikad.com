@@ -64,7 +64,13 @@ $primaryLink = "scan.php?id=" . $questId;
 $primaryText = "สแกนอีกครั้ง";
 
 if ($scannedCode === $targetCode) {
-    $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=?");
+    $dailyRefresh = isDailyRefreshQuest($placeRow["category"] ?? "");
+
+    if ($dailyRefresh) {
+        $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=? AND completed_date=CURDATE()");
+    } else {
+        $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=?");
+    }
     $stmt->bind_param("ii", $userId, $questId);
     $stmt->execute();
     $alreadyDone = (bool)$stmt->get_result()->fetch_assoc();
@@ -72,14 +78,16 @@ if ($scannedCode === $targetCode) {
     if ($alreadyDone) {
         $success = true;
         $title = "ทำภารกิจแล้ว";
-        $message = "คุณได้รับคะแนนจากภารกิจนี้ไปแล้ว";
+        $message = $dailyRefresh
+            ? "คุณทำภารกิจนี้ไปแล้ววันนี้ พรุ่งนี้กลับมาทำใหม่ได้"
+            : "คุณได้รับคะแนนจากภารกิจนี้ไปแล้ว";
         $primaryLink = "dashboard.php";
         $primaryText = "กลับหน้าหลัก";
     } else {
         try {
             $conn->begin_transaction();
 
-            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id) VALUES (?, ?)");
+            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id, completed_date) VALUES (?, ?, CURDATE())");
             $stmt->bind_param("ii", $userId, $questId);
             if (!$stmt->execute()) throw new Exception($conn->error);
 
