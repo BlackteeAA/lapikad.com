@@ -2,8 +2,10 @@
 require_once "_db.php";
 require_once "_mail.php";
 
-$msg  = "";
-$sent = false;
+$msg      = "";
+$sent     = false;
+$notFound = false;
+$mailError = null; // TEMP debug — remove once SMTP is confirmed working
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!csrf_verify()) redirect("forgot_password.php");
@@ -34,11 +36,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $subject = "รีเซ็ตรหัสผ่าน ล่าพิกัด.com";
             $body    = "คลิกลิงก์นี้เพื่อตั้งรหัสผ่านใหม่ (ใช้ได้ 1 ชั่วโมง):\n\n$resetUrl\n\nถ้าคุณไม่ได้ขอเปลี่ยนรหัสผ่าน สามารถเพิกเฉยอีเมลนี้ได้";
-            sendAppMail($email, $user["name"], $subject, $body);
+            $sent = sendAppMail($email, $user["name"], $subject, $body, $mailError);
+        } else {
+            $notFound = true;
         }
-
-        // Same message whether the email exists or not, so this can't be used to check registered emails.
-        $sent = true;
     }
 }
 ?>
@@ -117,6 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       padding: 12px 14px; border-radius: 12px; font-size: 14px;
       margin-bottom: 16px; line-height: 1.5;
     }
+    .auth-alert.bad { background: #fee2e2; color: #dc2626; }
 
     .auth-bottom { text-align: center; margin-top: 20px; font-size: 14px; color: #374151; }
     .auth-bottom a { color: #2563eb; font-weight: 600; text-decoration: none; margin-left: 4px; }
@@ -141,16 +143,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
       <?php if ($sent): ?>
         <p class="hint">กรอกอีเมลที่ใช้สมัคร แล้วเราจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้</p>
-        <div class="auth-alert">ถ้าอีเมลนี้มีอยู่ในระบบ เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปให้แล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึงถังขยะ/สแปม)</div>
+        <div class="auth-alert">ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึงถังขยะ/สแปม)</div>
+        <?php if ($mailError): ?>
+          <div class="auth-alert bad" style="word-break:break-word">DEBUG (ลบออกทีหลัง): <?= e($mailError) ?></div>
+        <?php endif; ?>
         <div class="auth-bottom">
           <a href="login.php">กลับไปหน้าเข้าสู่ระบบ</a>
         </div>
       <?php else: ?>
         <p class="hint">กรอกอีเมลที่ใช้สมัคร แล้วเราจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้</p>
+
+        <?php if ($notFound): ?>
+          <div class="auth-alert bad">ไม่มีอีเมลนี้ในระบบ</div>
+        <?php elseif ($mailError): ?>
+          <div class="auth-alert bad" style="word-break:break-word">DEBUG (ลบออกทีหลัง) — ส่งไม่สำเร็จ: <?= e($mailError) ?></div>
+        <?php endif; ?>
+
         <form method="post">
           <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
           <label>อีเมล</label>
-          <input name="email" type="email" placeholder="กรอกอีเมล" required>
+          <input name="email" type="email" placeholder="กรอกอีเมล" value="<?= e($_POST["email"] ?? "") ?>" required>
           <button class="auth-btn" type="submit">ส่งลิงก์รีเซ็ตรหัสผ่าน</button>
         </form>
         <div class="auth-bottom">

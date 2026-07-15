@@ -9,7 +9,7 @@ if (!isset($_SESSION["user_id"])) {
     redirect("login.php");
 }
 
-$banStmt = $conn->prepare("SELECT is_banned FROM users WHERE id=?");
+$banStmt = $conn->prepare("SELECT role, is_banned FROM users WHERE id=?");
 $banStmt->bind_param("i", $_SESSION["user_id"]);
 $banStmt->execute();
 $banRow = $banStmt->get_result()->fetch_assoc();
@@ -19,4 +19,6 @@ if (!$banRow || !empty($banRow["is_banned"])) {
     clearRememberCookie();
     redirect("login.php?banned=1");
 }
+
+$_SESSION["role"] = $banRow["role"];
 ?>

@@ -44,6 +44,14 @@ if ($isLoggedIn) {
 
     $doneQ = $conn->query("SELECT COUNT(*) AS c FROM user_quests WHERE user_id=$userId")->fetch_assoc()["c"];
     $doneP = $conn->query("SELECT COUNT(DISTINCT q.place_id) AS c FROM user_quests uq JOIN quests q ON q.id=uq.quest_id WHERE uq.user_id=$userId")->fetch_assoc()["c"];
+
+    $myShopRequest = null;
+    if ($user["role"] === "user") {
+        $stmt = $conn->prepare("SELECT status FROM shop_requests WHERE user_id=? ORDER BY id DESC LIMIT 1");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $myShopRequest = $stmt->get_result()->fetch_assoc();
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -239,6 +247,22 @@ if ($isLoggedIn) {
     <?php if ($user["role"] === "admin"): ?>
       <a href="admin.php" style="display:block;text-align:center;padding:14px;background:#fff;border-radius:999px;font-weight:600;color:#2563eb;text-decoration:none;margin-bottom:14px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
         แผงควบคุม Admin
+      </a>
+    <?php endif; ?>
+
+    <?php if ($user["role"] === "shop"): ?>
+      <a href="shop.php" style="display:block;text-align:center;padding:14px;background:#fff;border-radius:999px;font-weight:600;color:#2563eb;text-decoration:none;margin-bottom:14px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
+        แผงควบคุมร้านค้า
+      </a>
+    <?php endif; ?>
+
+    <?php if ($user["role"] === "user" && (!$myShopRequest || $myShopRequest["status"] !== "pending")): ?>
+      <a href="shop_apply.php" style="display:block;text-align:center;padding:14px;background:#fff;border-radius:999px;font-weight:600;color:#2563eb;text-decoration:none;margin-bottom:14px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
+        สมัครเป็นร้านค้า
+      </a>
+    <?php elseif ($user["role"] === "user" && $myShopRequest && $myShopRequest["status"] === "pending"): ?>
+      <a href="shop_apply.php" style="display:block;text-align:center;padding:14px;background:#f8fafc;border-radius:999px;font-weight:600;color:#94a3b8;text-decoration:none;margin-bottom:14px;box-shadow:0 2px 8px rgba(15,23,42,.06)">
+        คำขอสมัครร้านค้า · รอตรวจสอบ
       </a>
     <?php endif; ?>
 

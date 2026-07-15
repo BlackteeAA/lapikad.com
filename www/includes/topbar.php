@@ -122,6 +122,9 @@ function notifTimeAgo($dt) {
       <?php if ($userRole === "admin"): ?>
         <a href="admin.php">แอดมิน</a>
       <?php endif; ?>
+      <?php if ($userRole === "shop"): ?>
+        <a href="shop.php">ร้านค้าของฉัน</a>
+      <?php endif; ?>
       <a href="logout.php" class="danger-link">ออกจากระบบ</a>
     <?php else: ?>
       <a href="login.php">เข้าสู่ระบบ</a>

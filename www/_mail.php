@@ -9,7 +9,8 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 // Sends a plain-text email via the configured SMTP mailbox. Returns true/false;
 // never throws, so callers (e.g. forgot_password.php) don't need to catch anything.
-function sendAppMail($toEmail, $toName, $subject, $body) {
+// Pass $error by reference to capture the reason when it fails (debugging aid).
+function sendAppMail($toEmail, $toName, $subject, $body, &$error = null) {
     global $smtpHost, $smtpPort, $smtpSecure, $smtpUser, $smtpPass, $smtpFrom, $smtpFromName;
 
     $mail = new PHPMailer(true);
@@ -34,7 +35,8 @@ function sendAppMail($toEmail, $toName, $subject, $body) {
         $mail->send();
         return true;
     } catch (PHPMailerException $e) {
-        error_log("sendAppMail failed: " . $mail->ErrorInfo);
+        $error = $mail->ErrorInfo;
+        error_log("sendAppMail failed: " . $error);
         return false;
     }
 }

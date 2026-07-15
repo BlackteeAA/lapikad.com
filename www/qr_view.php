@@ -1,10 +1,15 @@
 <?php
-require_once "_admin.php";
+require_once "_auth.php";
+
+$role = $_SESSION["role"] ?? "";
+if ($role !== "admin" && $role !== "shop") {
+    redirect("dashboard.php");
+}
 
 $questId = intval($_GET["id"] ?? 0);
 
 $stmt = $conn->prepare("
-    SELECT q.*, p.name AS place_name
+    SELECT q.*, p.name AS place_name, p.owner_user_id
     FROM quests q
     JOIN places p ON p.id = q.place_id
     WHERE q.id = ?
@@ -15,6 +20,10 @@ $quest = $stmt->get_result()->fetch_assoc();
 
 if (!$quest) {
     redirect("admin.php");
+}
+
+if ($role === "shop" && intval($quest["owner_user_id"]) !== intval($_SESSION["user_id"])) {
+    redirect("shop.php");
 }
 
 $baseUrl = "https://xn--12c2b2a1a6ddp1n.com";
@@ -36,7 +45,7 @@ $qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . ur
   <main class="app">
     <?php include "includes/topbar.php"; ?>
 
-    <a class="back" href="admin.php">กลับ</a>
+    <a class="back" href="<?= $role === "shop" ? "shop_quests.php" : "admin.php" ?>">กลับ</a>
 
     <section class="panel">
       <p class="eyebrow">QR Code</p>

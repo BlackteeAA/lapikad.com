@@ -20,8 +20,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $stmt->execute();
     $reward = $stmt->get_result()->fetch_assoc();
 
+    $isEligible = true;
+    if ($reward && $reward["place_id"]) {
+        $elg = $conn->prepare("
+            SELECT 1 FROM user_quests uq JOIN quests q ON q.id = uq.quest_id
+            WHERE uq.user_id=? AND q.place_id=? LIMIT 1
+        ");
+        $elg->bind_param("ii", $userId, $reward["place_id"]);
+        $elg->execute();
+        $isEligible = (bool) $elg->get_result()->fetch_assoc();
+    }
+
     if (!$reward) {
         $msg = "ไม่พบของรางวัล";
+    } elseif (!$isEligible) {
+        $msg = "ต้องทำภารกิจที่ร้านนี้ก่อนจึงจะแลกรางวัลนี้ได้";
     } elseif ($reward["stock"] <= 0) {
         $msg = "ของรางวัลหมดแล้ว";
     } elseif ($userRow["points"] < $reward["cost_points"]) {
@@ -58,7 +71,15 @@ $stmt2->bind_param("i", $userId);
 $stmt2->execute();
 $redeemCount = $stmt2->get_result()->fetch_assoc()["total"];
 
-$rewards = $conn->query("SELECT * FROM rewards ORDER BY cost_points ASC")->fetch_all(MYSQLI_ASSOC);
+$rewards = $conn->query("
+    SELECT r.*, p.name AS place_name
+    FROM rewards r LEFT JOIN places p ON p.id = r.place_id
+    ORDER BY r.cost_points ASC
+")->fetch_all(MYSQLI_ASSOC);
+
+$eligiblePlaceIds = array_column($conn->query("
+    SELECT DISTINCT q.place_id FROM user_quests uq JOIN quests q ON q.id = uq.quest_id WHERE uq.user_id=$userId
+")->fetch_all(MYSQLI_ASSOC), "place_id");
 
 $tab = $_GET["tab"] ?? "list";
 
@@ -359,7 +380,8 @@ $history = $stmt_h->get_result()->fetch_all(MYSQLI_ASSOC);
 
     <div class="rw-list">
       <?php foreach ($rewards as $i => $rw):
-        $canRedeem  = $user["points"] >= $rw["cost_points"] && $rw["stock"] > 0;
+        $isEligible = !$rw["place_id"] || in_array($rw["place_id"], $eligiblePlaceIds);
+        $canRedeem  = $isEligible && $user["points"] >= $rw["cost_points"] && $rw["stock"] > 0;
         $outOfStock = $rw["stock"] <= 0;
         $bg = $bgs[$i % count($bgs)];
         $ph = $phs[$i % count($phs)];
@@ -377,6 +399,9 @@ $history = $stmt_h->get_result()->fetch_all(MYSQLI_ASSOC);
             </div>
             <div class="rw-body">
               <p class="rw-name"><?= e($rw["name"]) ?></p>
+              <?php if ($rw["place_id"]): ?>
+                <span style="font-size:10.5px;font-weight:600;color:#2563eb;background:#eff6ff;padding:2px 8px;border-radius:99px;width:fit-content">จากร้าน: <?= e($rw["place_name"]) ?></span>
+              <?php endif; ?>
               <?php if ($rw["description"]): ?>
                 <p class="rw-desc"><?= e($rw["description"]) ?></p>
               <?php endif; ?>
@@ -396,7 +421,7 @@ $history = $stmt_h->get_result()->fetch_all(MYSQLI_ASSOC);
               <button class="rw-btn <?= $outOfStock ? 'out' : '' ?>"
                       type="submit"
                       <?= $canRedeem ? '' : 'disabled' ?>>
-                <?= $outOfStock ? 'หมดแล้ว' : ($canRedeem ? 'แลกเลย' : 'คะแนนไม่พอ') ?>
+                <?= $outOfStock ? 'หมดแล้ว' : (!$isEligible ? 'ต้องทำภารกิจร้านนี้ก่อน' : ($canRedeem ? 'แลกเลย' : 'คะแนนไม่พอ')) ?>
               </button>
             </form>
           </div>

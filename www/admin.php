@@ -5,6 +5,7 @@ $totalPlaces      = $conn->query("SELECT COUNT(*) c FROM places")->fetch_assoc()
 $totalUsers       = $conn->query("SELECT COUNT(*) c FROM users")->fetch_assoc()["c"];
 $totalRewards     = $conn->query("SELECT COUNT(*) c FROM rewards")->fetch_assoc()["c"];
 $totalPointsGiven = $conn->query("SELECT COALESCE(SUM(points),0) c FROM point_logs WHERE points > 0")->fetch_assoc()["c"];
+$pendingShopReqs  = $conn->query("SELECT COUNT(*) c FROM shop_requests WHERE status='pending'")->fetch_assoc()["c"];
 
 $adminName = $_SESSION["name"] ?? "Admin";
 ?>
@@ -150,6 +151,15 @@ $adminName = $_SESSION["name"] ?? "Admin";
           <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="#2563eb"/></svg>
         </div>
         <span>กิจกรรม/ภารกิจ</span>
+      </a>
+      <a class="adm-quick-tile" href="admin_shop_requests.php" style="position:relative">
+        <?php if ($pendingShopReqs > 0): ?>
+          <span style="position:absolute;top:8px;right:8px;background:#ef4444;color:#fff;border-radius:99px;padding:1px 6px;font-size:10.5px;font-weight:700"><?= $pendingShopReqs ?></span>
+        <?php endif; ?>
+        <div class="icon-circle" style="background:#fef9c3">
+          <svg viewBox="0 0 24 24" style="fill:#a16207"><path d="M4 4h16v4H4V4zm0 6h16v10H4V10zm3 2v2h6v-2H7z"/></svg>
+        </div>
+        <span>คำขอร้านค้า</span>
       </a>
     </div>
 

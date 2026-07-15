@@ -29,6 +29,15 @@ $placesAll = $conn->query("
     GROUP BY p.id ORDER BY p.id
 ")->fetch_all(MYSQLI_ASSOC);
 
+$showShopPromo = false;
+if (($_SESSION["role"] ?? "") === "user") {
+    $spStmt = $conn->prepare("SELECT status FROM shop_requests WHERE user_id=? ORDER BY id DESC LIMIT 1");
+    $spStmt->bind_param("i", $userId);
+    $spStmt->execute();
+    $spRow = $spStmt->get_result()->fetch_assoc();
+    $showShopPromo = !$spRow || $spRow["status"] === "rejected";
+}
+
 $placesJson = json_encode(array_map(fn($p) => [
     'id'    => $p['id'],
     'name'  => $p['name'],
@@ -185,6 +194,73 @@ $placesJson = json_encode(array_map(fn($p) => [
     .db-stat-val { font-size:18px; font-weight:700; color:#0f172a; display:block; line-height:1; }
     .db-stat-lbl { font-size:10px; color:#64748b; display:block; margin-top:3px; line-height:1.2; }
 
+    /* ── Shop promo ── */
+    .db-shop-promo {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      padding: 20px 20px 18px;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      box-shadow: 0 6px 18px rgba(21,128,61,.25);
+    }
+    .db-shop-promo::before {
+      content: "";
+      position: absolute;
+      right: -30px; top: -30px;
+      width: 140px; height: 140px;
+      background: rgba(255,255,255,.08);
+      border-radius: 50%;
+    }
+    .db-shop-promo::after {
+      content: "";
+      position: absolute;
+      right: 20px; bottom: -40px;
+      width: 90px; height: 90px;
+      background: rgba(255,255,255,.08);
+      border-radius: 50%;
+    }
+    .db-shop-promo-close {
+      position: absolute; top: 10px; right: 10px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(255,255,255,.2); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2;
+    }
+    .db-shop-promo-close svg { width:14px;height:14px;fill:#fff; }
+    .db-shop-promo-icon {
+      width: 44px; height: 44px; border-radius: 14px;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px; position: relative; z-index: 1;
+    }
+    .db-shop-promo-icon svg { width:24px;height:24px;fill:#fff; }
+    .db-shop-promo h3 {
+      position: relative; z-index: 1;
+      font-size: 18px; font-weight: 700; color: #fff; margin: 0 0 4px; line-height: 1.3;
+    }
+    .db-shop-promo p {
+      position: relative; z-index: 1;
+      font-size: 12.5px; color: rgba(255,255,255,.85); margin: 0 0 12px; font-weight: 300;
+    }
+    .db-shop-promo-list {
+      position: relative; z-index: 1;
+      display: grid; gap: 6px; margin-bottom: 16px;
+    }
+    .db-shop-promo-list span {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 12.5px; color: #fff; font-weight: 500;
+    }
+    .db-shop-promo-list svg { width:15px;height:15px;fill:#bbf7d0;flex-shrink:0; }
+    .db-shop-promo-btn {
+      position: relative; z-index: 1;
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #fff; color: #16a34a;
+      padding: 11px 18px; border-radius: 999px;
+      font-size: 14px; font-weight: 700; text-decoration: none;
+    }
+    .db-shop-promo-btn svg { width:16px;height:16px;fill:#16a34a; }
+
     /* ── Nearby section ── */
     .db-nearby-head {
       display: flex;
@@ -322,6 +398,47 @@ $placesJson = json_encode(array_map(fn($p) => [
       </a>
     </div>
 
+    <?php if ($showShopPromo): ?>
+    <!-- Shop promo -->
+    <div class="db-shop-promo" id="shop-promo">
+      <button type="button" class="db-shop-promo-close" onclick="dismissShopPromo()" aria-label="ปิด">
+        <svg viewBox="0 0 24 24"><path d="M6.4 4.98L4.98 6.4 10.59 12l-5.6 5.6 1.4 1.4 5.61-5.6 5.6 5.6 1.4-1.4-5.6-5.6 5.6-5.6-1.4-1.4-5.6 5.6z"/></svg>
+      </button>
+      <div class="db-shop-promo-icon">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4v2l1.6 8H18.4L20 6V4zM4 20h16v-2H4v2zm2.4-6l-1-6h13.2l-1 6H6.4z"/></svg>
+      </div>
+      <h3>เป็นเจ้าของร้านค้า?</h3>
+      <p>เชิญชวนร้านค้าของชาว SME มาร่วมกิจกรรมและภารกิจสนุกๆกัน!</p>
+      <div class="db-shop-promo-list">
+        <span>
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          ไม่มีค่าใช้จ่าย
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          สร้างภารกิจ/รางวัลของร้านเอง
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          ลูกค้าเห็นร้านคุณในแอปทันที
+        </span>
+      </div>
+      <a href="shop_apply.php" class="db-shop-promo-btn">
+        สมัครร้านค้าเลย!
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </a>
+    </div>
+    <script>
+      if (localStorage.getItem('shop_promo_dismissed') === '1') {
+        document.getElementById('shop-promo').style.display = 'none';
+      }
+      function dismissShopPromo() {
+        localStorage.setItem('shop_promo_dismissed', '1');
+        document.getElementById('shop-promo').style.display = 'none';
+      }
+    </script>
+    <?php endif; ?>
+
     <!-- Nearby places -->
     <div class="db-nearby-head" id="nearby-section">
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
@@ -339,7 +456,7 @@ $placesJson = json_encode(array_map(fn($p) => [
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
   const PLACES = <?= $placesJson ?>;
-  const GPS_NEAR_KM = 2;
+  const GPS_NEAR_KM = 1;
 
   function haversine(lat1, lng1, lat2, lng2) {
     const R = 6371;
