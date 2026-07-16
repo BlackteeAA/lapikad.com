@@ -5,32 +5,6 @@ $userId = intval($_SESSION["user_id"]);
 $questId = intval($_POST["quest_id"] ?? 0);
 $rawCode = trim($_POST["scanned_code"] ?? "");
 
-function extractQrCode($rawCode) {
-    $rawCode = trim($rawCode);
-
-    if ($rawCode === "") {
-        return "";
-    }
-
-    if (str_starts_with(strtoupper($rawCode), "LAPIKAD:")) {
-        return strtoupper(str_replace("LAPIKAD:", "", $rawCode));
-    }
-
-    if (filter_var($rawCode, FILTER_VALIDATE_URL)) {
-        $parts = parse_url($rawCode);
-
-        if (isset($parts["query"])) {
-            parse_str($parts["query"], $query);
-
-            if (isset($query["code"])) {
-                return strtoupper(trim($query["code"]));
-            }
-        }
-    }
-
-    return strtoupper($rawCode);
-}
-
 if (!csrf_verify()) redirect("places.php");
 
 $lastAttempt = $_SESSION['last_quest_attempt'] ?? 0;
@@ -49,7 +23,7 @@ if (!$quest) redirect("places.php");
 // Get place info
 $placeRow = null;
 if ($quest["place_id"]) {
-    $sp = $conn->prepare("SELECT name, category, district, province FROM places WHERE id=?");
+    $sp = $conn->prepare("SELECT name, category, district, province, owner_user_id FROM places WHERE id=?");
     $sp->bind_param("i", $quest["place_id"]);
     $sp->execute();
     $placeRow = $sp->get_result()->fetch_assoc();
@@ -64,7 +38,8 @@ $primaryLink = "scan.php?id=" . $questId;
 $primaryText = "สแกนอีกครั้ง";
 
 if ($scannedCode === $targetCode) {
-    $dailyRefresh = isDailyRefreshQuest($placeRow["category"] ?? "");
+    $ownerUserId  = $placeRow["owner_user_id"] ?? null;
+    $dailyRefresh = isDailyRefreshQuest($ownerUserId !== null ? intval($ownerUserId) : null);
 
     if ($dailyRefresh) {
         $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=? AND completed_date=CURDATE()");
@@ -94,6 +69,15 @@ if ($scannedCode === $targetCode) {
             $stmt = $conn->prepare("UPDATE users SET points = points + ? WHERE id=?");
             $stmt->bind_param("ii", $quest["reward_points"], $userId);
             if (!$stmt->execute()) throw new Exception($conn->error);
+
+            if ($ownerUserId !== null) {
+                $stmt = $conn->prepare("
+                    INSERT INTO user_shop_points (user_id, place_id, points) VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE points = points + VALUES(points)
+                ");
+                $stmt->bind_param("iii", $userId, $quest["place_id"], $quest["reward_points"]);
+                if (!$stmt->execute()) throw new Exception($conn->error);
+            }
 
             $reason = "ทำภารกิจ QR Code: " . $quest["title"];
             $stmt = $conn->prepare("
@@ -382,9 +366,9 @@ if ($scannedCode === $targetCode) {
         </div>
       </div>
 
-      <a href="rewards.php" class="rc-btn-primary">
+      <a href="<?= $ownerUserId !== null ? "place.php?id=" . $quest["place_id"] : "rewards.php" ?>" class="rc-btn-primary">
         <svg viewBox="0 0 24 24"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5z"/></svg>
-        ดูของรางวัลของฉัน
+        <?= $ownerUserId !== null ? "ดูของรางวัลร้านนี้" : "ดูของรางวัลของฉัน" ?>
       </a>
       <a href="dashboard.php" class="rc-btn-ghost">กลับหน้าหลัก</a>
 

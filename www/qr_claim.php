@@ -15,14 +15,15 @@ if ($code !== "") {
     $quest = $stmt->get_result()->fetch_assoc();
 
     if ($quest) {
-        $placeCategory = null;
+        $ownerUserId = null;
         if ($quest["place_id"]) {
-            $sp = $conn->prepare("SELECT category FROM places WHERE id=?");
+            $sp = $conn->prepare("SELECT owner_user_id FROM places WHERE id=?");
             $sp->bind_param("i", $quest["place_id"]);
             $sp->execute();
-            $placeCategory = $sp->get_result()->fetch_assoc()["category"] ?? null;
+            $ownerRow = $sp->get_result()->fetch_assoc();
+            $ownerUserId = $ownerRow && $ownerRow["owner_user_id"] !== null ? intval($ownerRow["owner_user_id"]) : null;
         }
-        $dailyRefresh = isDailyRefreshQuest($placeCategory ?? "");
+        $dailyRefresh = isDailyRefreshQuest($ownerUserId);
 
         if ($dailyRefresh) {
             $stmt = $conn->prepare("SELECT id FROM user_quests WHERE user_id=? AND quest_id=? AND completed_date=CURDATE()");
@@ -40,30 +41,46 @@ if ($code !== "") {
                 ? "คุณทำภารกิจนี้ไปแล้ววันนี้ พรุ่งนี้กลับมาทำใหม่ได้"
                 : "คุณได้รับคะแนนจาก QR นี้ไปแล้ว";
         } else {
-            $conn->begin_transaction();
+            try {
+                $conn->begin_transaction();
 
-            $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id, completed_date) VALUES (?, ?, CURDATE())");
-            $stmt->bind_param("ii", $userId, $quest["id"]);
-            $stmt->execute();
+                $stmt = $conn->prepare("INSERT INTO user_quests (user_id, quest_id, completed_date) VALUES (?, ?, CURDATE())");
+                $stmt->bind_param("ii", $userId, $quest["id"]);
+                if (!$stmt->execute()) throw new Exception($conn->error);
 
-            $stmt = $conn->prepare("UPDATE users SET points = points + ? WHERE id=?");
-            $stmt->bind_param("ii", $quest["reward_points"], $userId);
-            $stmt->execute();
+                $stmt = $conn->prepare("UPDATE users SET points = points + ? WHERE id=?");
+                $stmt->bind_param("ii", $quest["reward_points"], $userId);
+                if (!$stmt->execute()) throw new Exception($conn->error);
 
-            $reason = "สแกน QR Code: " . $quest["title"];
+                if ($ownerUserId !== null) {
+                    $stmt = $conn->prepare("
+                        INSERT INTO user_shop_points (user_id, place_id, points) VALUES (?, ?, ?)
+                        ON DUPLICATE KEY UPDATE points = points + VALUES(points)
+                    ");
+                    $stmt->bind_param("iii", $userId, $quest["place_id"], $quest["reward_points"]);
+                    if (!$stmt->execute()) throw new Exception($conn->error);
+                }
 
-            $stmt = $conn->prepare("
-                INSERT INTO point_logs (user_id, admin_id, points, reason)
-                VALUES (?, NULL, ?, ?)
-            ");
-            $stmt->bind_param("iis", $userId, $quest["reward_points"], $reason);
-            $stmt->execute();
+                $reason = "สแกน QR Code: " . $quest["title"];
 
-            $conn->commit();
+                $stmt = $conn->prepare("
+                    INSERT INTO point_logs (user_id, admin_id, points, reason)
+                    VALUES (?, NULL, ?, ?)
+                ");
+                $stmt->bind_param("iis", $userId, $quest["reward_points"], $reason);
+                if (!$stmt->execute()) throw new Exception($conn->error);
 
-            $success = true;
-            $title = "สแกนสำเร็จ";
-            $message = "คุณได้รับ " . $quest["reward_points"] . " คะแนน";
+                $conn->commit();
+
+                $success = true;
+                $title = "สแกนสำเร็จ";
+                $message = "คุณได้รับ " . $quest["reward_points"] . " คะแนน";
+            } catch (Exception $e) {
+                $conn->rollback();
+                $success = false;
+                $title = "เกิดข้อผิดพลาด";
+                $message = "ไม่สามารถบันทึกภารกิจได้ กรุณาลองใหม่";
+            }
         }
     }
 }

@@ -7,7 +7,7 @@ $msg     = "";
 $msgType = "bad";
 
 $stmt = $conn->prepare("
-    SELECT q.*, p.name AS place_name, p.id AS place_id, p.category AS place_category
+    SELECT q.*, p.name AS place_name, p.id AS place_id, p.category AS place_category, p.owner_user_id
     FROM quests q JOIN places p ON p.id=q.place_id WHERE q.id=?
 ");
 $stmt->bind_param("i", $questId);
@@ -16,7 +16,8 @@ $quest = $stmt->get_result()->fetch_assoc();
 
 if (!$quest) redirect("places.php");
 
-$dailyRefresh = isDailyRefreshQuest($quest["place_category"] ?? "");
+$ownerUserId  = $quest["owner_user_id"] !== null ? intval($quest["owner_user_id"]) : null;
+$dailyRefresh = isDailyRefreshQuest($ownerUserId);
 
 if ($dailyRefresh) {
     $stmt = $conn->prepare("SELECT id, photo_url FROM user_quests WHERE user_id=? AND quest_id=? AND completed_date=CURDATE()");
@@ -76,6 +77,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && !$alreadyDone) {
             $stmt = $conn->prepare("UPDATE users SET points = points + ? WHERE id=?");
             $stmt->bind_param("ii", $quest["reward_points"], $userId);
             if (!$stmt->execute()) throw new Exception();
+
+            if ($ownerUserId !== null) {
+                $stmt = $conn->prepare("
+                    INSERT INTO user_shop_points (user_id, place_id, points) VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE points = points + VALUES(points)
+                ");
+                $stmt->bind_param("iii", $userId, $quest["place_id"], $quest["reward_points"]);
+                if (!$stmt->execute()) throw new Exception();
+            }
 
             $stmt = $conn->prepare("INSERT INTO point_logs (user_id, admin_id, points, reason) VALUES (?, NULL, ?, ?)");
             $reason = "ทำภารกิจ: " . $quest["title"];

@@ -131,6 +131,18 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
         </div>
         <span>จัดการของรางวัล</span>
       </a>
+      <a class="adm-quick-tile" href="shop_scan_redeem.php">
+        <div class="icon-circle" style="background:#dcfce7">
+          <svg viewBox="0 0 24 24" style="fill:#16a34a"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM9 9h6v6H9V9z"/></svg>
+        </div>
+        <span>สแกนแลกรางวัล</span>
+      </a>
+      <a class="adm-quick-tile" href="shop_redemptions.php">
+        <div class="icon-circle" style="background:#ede9fe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
+        </div>
+        <span>ประวัติการแลกรางวัล</span>
+      </a>
     </div>
 
   </main>

@@ -12,12 +12,86 @@ $conn->set_charset("utf8mb4");
 $conn->query("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
 $conn->query("SET CHARACTER SET utf8mb4");
 
-// Places in this category are shops: their quests can be redone once per day
-// instead of only once ever (places.category value, set in admin_places_add.php).
+// Default category used when a shop application doesn't specify one
+// (admin_shop_requests.php). No longer drives the daily-refresh mechanic itself.
 define("SHOP_QUEST_CATEGORY", "ร้านค้า/ร้านอาหาร");
 
-function isDailyRefreshQuest($placeCategory) {
-    return $placeCategory === SHOP_QUEST_CATEGORY;
+// A place with a real owner (places.owner_user_id) is a shop: its quests can be
+// redone once per calendar day instead of only once ever.
+function isDailyRefreshQuest($ownerUserId) {
+    return $ownerUserId !== null;
+}
+
+// Extracts the LAPIKAD target code from a raw scanned QR value: either a bare
+// "LAPIKAD:CODE" string, a full URL with a ?code= query param, or a plain code.
+function extractQrCode($rawCode) {
+    $rawCode = trim($rawCode);
+
+    if ($rawCode === "") {
+        return "";
+    }
+
+    if (str_starts_with(strtoupper($rawCode), "LAPIKAD:")) {
+        return strtoupper(str_replace("LAPIKAD:", "", $rawCode));
+    }
+
+    if (filter_var($rawCode, FILTER_VALIDATE_URL)) {
+        $parts = parse_url($rawCode);
+
+        if (isset($parts["query"])) {
+            parse_str($parts["query"], $query);
+
+            if (isset($query["code"])) {
+                return strtoupper(trim($query["code"]));
+            }
+        }
+    }
+
+    return strtoupper($rawCode);
+}
+
+define("REDEMPTION_EXPIRY_MINUTES", 5);
+
+function generateRedemptionCode() {
+    return strtoupper(bin2hex(random_bytes(6)));
+}
+
+// If $row (a shop_redemptions row) is still 'pending' but past its expiry, refunds
+// the reserved points/stock and marks it 'expired'. Returns the (possibly updated)
+// status string. Safe to call repeatedly — a no-op once the row isn't pending.
+function expireIfNeeded($conn, $row) {
+    if ($row["status"] !== "pending") {
+        return $row["status"];
+    }
+    if (strtotime($row["expires_at"]) > time()) {
+        return "pending";
+    }
+
+    $conn->begin_transaction();
+    try {
+        $upd = $conn->prepare("UPDATE shop_redemptions SET status='expired' WHERE id=? AND status='pending'");
+        $upd->bind_param("i", $row["id"]);
+        $upd->execute();
+
+        if ($upd->affected_rows > 0) {
+            $refundPts = $conn->prepare("
+                INSERT INTO user_shop_points (user_id, place_id, points) VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE points = points + VALUES(points)
+            ");
+            $refundPts->bind_param("iii", $row["user_id"], $row["place_id"], $row["points_cost"]);
+            $refundPts->execute();
+
+            $refundStock = $conn->prepare("UPDATE rewards SET stock = stock + 1 WHERE id=?");
+            $refundStock->bind_param("i", $row["reward_id"]);
+            $refundStock->execute();
+        }
+
+        $conn->commit();
+        return "expired";
+    } catch (Exception $e) {
+        $conn->rollback();
+        return $row["status"];
+    }
 }
 
 define("REMEMBER_COOKIE_DAYS", 30);

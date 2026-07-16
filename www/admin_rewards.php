@@ -1,4 +1,8 @@
 <?php
+// NOTE: rewards created here have place_id NULL (global rewards). Since the shop
+// points/QR redemption system shipped, only place-scoped rewards (managed by shop
+// owners in shop_rewards.php) are redeemable anywhere in the app. Global rewards
+// added here can still be curated but aren't currently exposed for redemption.
 require_once "_admin.php";
 
 $msg = "";

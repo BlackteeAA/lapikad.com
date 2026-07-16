@@ -25,7 +25,7 @@ $placesAll = $conn->query("
     FROM places p
     LEFT JOIN quests q ON q.place_id = p.id
     LEFT JOIN user_quests uq ON uq.quest_id = q.id AND uq.user_id = $userId
-        AND (p.category != '" . SHOP_QUEST_CATEGORY . "' OR uq.completed_date = CURDATE())
+        AND (p.owner_user_id IS NULL OR uq.completed_date = CURDATE())
     GROUP BY p.id ORDER BY p.id
 ")->fetch_all(MYSQLI_ASSOC);
 

@@ -11,7 +11,7 @@ $place = $stmt->get_result()->fetch_assoc();
 
 if (!$place) redirect("places.php");
 
-$dailyRefresh = isDailyRefreshQuest($place["category"] ?? "");
+$dailyRefresh = isDailyRefreshQuest($place["owner_user_id"] !== null ? intval($place["owner_user_id"]) : null);
 $dateFilter   = $dailyRefresh ? "AND uq.completed_date = CURDATE()" : "";
 
 $stmt = $conn->prepare("
@@ -37,6 +37,18 @@ $locParts = array_filter([
 ]);
 $locText = implode(" ", $locParts) ?: "ไม่ระบุพื้นที่";
 $hasGps  = $place["lat"] !== null && $place["lng"] !== null;
+
+$shopPoints  = 0;
+$shopHasRewards = false;
+if ($dailyRefresh) {
+    $spStmt = $conn->prepare("SELECT points FROM user_shop_points WHERE user_id=? AND place_id=?");
+    $spStmt->bind_param("ii", $userId, $placeId);
+    $spStmt->execute();
+    $spRow = $spStmt->get_result()->fetch_assoc();
+    $shopPoints = $spRow ? intval($spRow["points"]) : 0;
+
+    $shopHasRewards = (bool) $conn->query("SELECT id FROM rewards WHERE place_id=$placeId LIMIT 1")->fetch_assoc();
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -117,6 +129,19 @@ $hasGps  = $place["lat"] !== null && $place["lng"] !== null;
     }
 
     .progress-meta { font-size: 13px; color: #64748b; }
+
+    .shop-pts-chip {
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      border-radius: 16px; padding: 12px 16px; margin-top: 12px;
+      text-decoration: none;
+    }
+    .shop-pts-chip .lbl { font-size: 12px; color: #64748b; }
+    .shop-pts-chip .val { font-size: 20px; font-weight: 700; color: #2563eb; }
+    .shop-pts-chip .cta {
+      font-size: 12.5px; font-weight: 600; color: #fff;
+      background: #2563eb; padding: 8px 14px; border-radius: 999px;
+    }
 
     .quest-section h2 {
       font-size: 17px;
@@ -211,6 +236,16 @@ $hasGps  = $place["lat"] !== null && $place["lng"] !== null;
       <p class="progress-meta">สำเร็จแล้ว <?= $done ?>/<?= $total ?> ภารกิจ (<?= $pct ?>%)</p>
       <?php if ($dailyRefresh): ?>
         <p class="progress-meta" style="color:#2563eb">ภารกิจร้านนี้ทำซ้ำได้ทุกวัน</p>
+      <?php endif; ?>
+
+      <?php if ($dailyRefresh && $shopHasRewards): ?>
+        <a href="shop_redeem.php?place_id=<?= $placeId ?>" class="shop-pts-chip">
+          <div>
+            <div class="lbl">แต้มร้านนี้ของคุณ</div>
+            <div class="val">★ <?= number_format($shopPoints) ?></div>
+          </div>
+          <span class="cta">แลกของรางวัล</span>
+        </a>
       <?php endif; ?>
     </div>
 
