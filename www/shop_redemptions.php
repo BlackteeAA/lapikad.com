@@ -4,8 +4,9 @@ require_once "_shop.php";
 $placeId = intval($shopPlace["id"]);
 
 // Lazily resolve any overdue pending redemptions for this shop (no cron in this app).
-$pendingRows = $conn->query("SELECT * FROM shop_redemptions WHERE place_id=$placeId AND status='pending'")->fetch_all(MYSQLI_ASSOC);
-foreach ($pendingRows as $pr) {
+// Only fetch rows actually past expires_at, not every still-valid pending row.
+$overdueRows = $conn->query("SELECT * FROM shop_redemptions WHERE place_id=$placeId AND status='pending' AND expires_at <= NOW()")->fetch_all(MYSQLI_ASSOC);
+foreach ($overdueRows as $pr) {
     expireIfNeeded($conn, $pr);
 }
 

@@ -318,6 +318,12 @@ $doneQuests = intval($doneStmt->get_result()->fetch_assoc()["done"] ?? 0);
 
     function catClass(cat) { return cat ? 'cat-' + cat : ''; }
 
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
     function placeholderSvg() {
       return '<svg class="placeholder" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>';
     }
@@ -327,7 +333,7 @@ $doneQuests = intval($doneStmt->get_result()->fetch_assoc()["done"] ?? 0);
     }
 
     function renderTopCard(q, rank) {
-      const thumb = q.image_url ? `<img src="${q.image_url}" alt="${q.place_name}">` : placeholderSvg();
+      const thumb = q.image_url ? `<img src="${esc(q.image_url)}" alt="${esc(q.place_name)}">` : placeholderSvg();
       const distText = q.distance_km !== null ? q.distance_km + ' กม. จากคุณ' : 'ไม่ทราบระยะทาง';
       const hasCoords = q.lat !== null && q.lng !== null;
       const hasUserLoc = window.__aqUserLat !== undefined && window.__aqUserLng !== undefined;
@@ -340,15 +346,15 @@ $doneQuests = intval($doneStmt->get_result()->fetch_assoc()["done"] ?? 0);
           <div class="aq-top-thumb">${thumb}<span class="aq-rank-badge">${rank}</span></div>
           <div class="aq-top-info">
             <div class="aq-top-name-row">
-              <strong>${q.place_name}</strong>
+              <strong>${esc(q.place_name)}</strong>
               <svg class="star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
             </div>
-            ${q.category ? `<span class="cat-badge ${catClass(q.category)}">${q.category}</span>` : ''}
+            ${q.category ? `<span class="cat-badge ${catClass(q.category)}">${esc(q.category)}</span>` : ''}
             <div class="aq-top-dist">
               <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
               ${distText}
             </div>
-            ${q.description ? `<p class="aq-top-desc">${q.description}</p>` : ''}
+            ${q.description ? `<p class="aq-top-desc">${esc(q.description)}</p>` : ''}
           </div>
         </div>
         <div class="aq-reward-row">รางวัล <strong>+${q.reward_points} คะแนน</strong></div>
@@ -368,7 +374,7 @@ $doneQuests = intval($doneStmt->get_result()->fetch_assoc()["done"] ?? 0);
     }
 
     function renderListCard(q, rank) {
-      const thumb = q.image_url ? `<img src="${q.image_url}" alt="${q.place_name}">` : placeholderSvg();
+      const thumb = q.image_url ? `<img src="${esc(q.image_url)}" alt="${esc(q.place_name)}">` : placeholderSvg();
       const distText = q.distance_km !== null ? q.distance_km + ' กม.' : '-- กม.';
       const hasCoords = q.lat !== null && q.lng !== null;
 
@@ -377,9 +383,9 @@ $doneQuests = intval($doneStmt->get_result()->fetch_assoc()["done"] ?? 0);
       el.innerHTML = `
         <div class="aq-list-thumb">${thumb}<span class="aq-rank-badge">${rank}</span></div>
         <div class="aq-list-info">
-          <strong>${q.place_name}</strong>
+          <strong>${esc(q.place_name)}</strong>
           <div class="aq-list-meta">
-            ${q.category ? `<span class="cat-badge ${catClass(q.category)}">${q.category}</span>` : ''}
+            ${q.category ? `<span class="cat-badge ${catClass(q.category)}">${esc(q.category)}</span>` : ''}
             <span class="dist">${distText}</span>
           </div>
           <div class="aq-list-meta"><span class="pts">รางวัล +${q.reward_points} คะแนน</span></div>

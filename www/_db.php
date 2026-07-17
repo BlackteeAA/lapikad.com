@@ -71,7 +71,7 @@ function expireIfNeeded($conn, $row) {
     try {
         $upd = $conn->prepare("UPDATE shop_redemptions SET status='expired' WHERE id=? AND status='pending'");
         $upd->bind_param("i", $row["id"]);
-        $upd->execute();
+        if (!$upd->execute()) throw new Exception($conn->error);
 
         if ($upd->affected_rows > 0) {
             $refundPts = $conn->prepare("
@@ -79,11 +79,11 @@ function expireIfNeeded($conn, $row) {
                 ON DUPLICATE KEY UPDATE points = points + VALUES(points)
             ");
             $refundPts->bind_param("iii", $row["user_id"], $row["place_id"], $row["points_cost"]);
-            $refundPts->execute();
+            if (!$refundPts->execute()) throw new Exception($conn->error);
 
             $refundStock = $conn->prepare("UPDATE rewards SET stock = stock + 1 WHERE id=?");
             $refundStock->bind_param("i", $row["reward_id"]);
-            $refundStock->execute();
+            if (!$refundStock->execute()) throw new Exception($conn->error);
         }
 
         $conn->commit();

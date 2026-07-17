@@ -281,17 +281,23 @@ if ($placeId !== null) {
       return cat ? 'cat-' + cat : '';
     }
 
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
     function placeCardHtml(p) {
       const thumb = p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}">`
+        ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">`
         : `<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
       return `
         <a href="place.php?id=${p.id}" class="guide-card">
           <div class="guide-card-thumb">${thumb}</div>
           <div class="guide-card-body">
-            ${p.category ? `<span class="cat-badge ${catClass(p.category)}">${p.category}</span>` : ''}
-            <strong>${p.name}</strong>
-            ${p.description ? `<span class="desc">${p.description}</span>` : ''}
+            ${p.category ? `<span class="cat-badge ${catClass(p.category)}">${esc(p.category)}</span>` : ''}
+            <strong>${esc(p.name)}</strong>
+            ${p.description ? `<span class="desc">${esc(p.description)}</span>` : ''}
           </div>
           <span class="guide-card-dist">${p.distance_km} กม.</span>
         </a>`;

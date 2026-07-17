@@ -24,15 +24,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     try {
         $conn->begin_transaction();
 
-        $lockR = $conn->prepare("SELECT stock, cost_points FROM rewards WHERE id=? FOR UPDATE");
-        $lockR->bind_param("i", $rewardId);
-        $lockR->execute();
-        $rLock = $lockR->get_result()->fetch_assoc();
-
+        // Lock user_shop_points before rewards, matching expireIfNeeded()'s lock
+        // order, so the two transactions can never deadlock on these two tables.
         $lockP = $conn->prepare("SELECT points FROM user_shop_points WHERE user_id=? AND place_id=? FOR UPDATE");
         $lockP->bind_param("ii", $userId, $placeId);
         $lockP->execute();
         $pLock = $lockP->get_result()->fetch_assoc();
+
+        $lockR = $conn->prepare("SELECT stock, cost_points FROM rewards WHERE id=? FOR UPDATE");
+        $lockR->bind_param("i", $rewardId);
+        $lockR->execute();
+        $rLock = $lockR->get_result()->fetch_assoc();
 
         if (!$rLock || $rLock["stock"] <= 0) {
             throw new Exception("out_of_stock");

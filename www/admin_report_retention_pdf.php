@@ -26,6 +26,11 @@ if ($isShop) {
 
 $selectedPlaceId = $isShop ? $ownPlaceId : intval($_GET["place_id"] ?? 0);
 
+// Bound the report to a date range by default, matching admin_report_retention.php.
+$dateFrom = $_GET["from"] ?? date("Y-m-d", strtotime("-90 days"));
+$dateTo   = $_GET["to"] ?? date("Y-m-d");
+$allTime  = isset($_GET["all"]) && $_GET["all"] === "1";
+
 $visitSql = "
     SELECT v.place_id, v.user_id, u.name AS user_name, v.visit_date
     FROM (
@@ -37,14 +42,29 @@ $visitSql = "
     ) v
     JOIN users u ON u.id = v.user_id
 ";
+
+$visitConditions = [];
+$visitTypes  = "";
+$visitParams = [];
 if ($selectedPlaceId > 0) {
-    $stmt = $conn->prepare($visitSql . " WHERE v.place_id = ?");
-    $stmt->bind_param("i", $selectedPlaceId);
-    $stmt->execute();
-    $visitRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-} else {
-    $visitRows = $conn->query($visitSql)->fetch_all(MYSQLI_ASSOC);
+    $visitConditions[] = "v.place_id = ?";
+    $visitTypes  .= "i";
+    $visitParams[] = $selectedPlaceId;
 }
+if (!$allTime) {
+    $visitConditions[] = "v.visit_date BETWEEN ? AND ?";
+    $visitTypes  .= "ss";
+    $visitParams[] = $dateFrom;
+    $visitParams[] = $dateTo;
+}
+
+$visitWhere = $visitConditions ? " WHERE " . implode(" AND ", $visitConditions) : "";
+$stmt = $conn->prepare($visitSql . $visitWhere);
+if ($visitParams) {
+    $stmt->bind_param($visitTypes, ...$visitParams);
+}
+$stmt->execute();
+$visitRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $byPlace = [];
 $userNames = [];
@@ -109,8 +129,9 @@ if ($selectedPlaceId === 0) {
 
 $selectedPlaceName = $selectedPlaceId > 0 ? ($placeNames[$selectedPlaceId] ?? "") : "";
 $scopeLabel = $selectedPlaceId > 0 ? $selectedPlaceName : "ทุกร้านค้า";
+$rangeLabel = $allTime ? "ข้อมูลทั้งหมด" : ($dateFrom . " ถึง " . $dateTo);
 
-$pdf = pdf_init("รายงานลูกค้ากลับมาซ้ำ (" . $scopeLabel . ")");
+$pdf = pdf_init("รายงานลูกค้ากลับมาซ้ำ (" . $scopeLabel . ") — " . $rangeLabel);
 
 pdf_summary_boxes($pdf, [
     ["value" => number_format($overallTotal), "label" => "ลูกค้าทั้งหมด (คน)"],

@@ -103,7 +103,17 @@ $systemPrompt = "คุณชื่อ \"น้องพิกัด\" เป็
     . "ผู้ใช้มีคะแนนสะสมอยู่ " . $points . " คะแนน ตอบเป็นภาษาไทย กระชับ อธิบายสั้นๆ ว่าทำไมถึงแนะนำภารกิจที่เลือก\n\n"
     . "รายการภารกิจที่ยังไม่ได้ทำ:\n" . implode("\n", $contextLines);
 
-$reply = askClaude($systemPrompt, "ช่วยแนะนำภารกิจที่ควรไปทำต่อไปให้หน่อย พร้อมเหตุผลสั้นๆ");
+// Reuse the last reply for ~60s if nothing that would change the recommendation
+// has changed (same points, same candidate quests) — avoids paying for a fresh
+// blocking Claude call on reloads / duplicate tabs with an identical context.
+$cacheKey = md5($points . "|" . implode(",", array_column($candidates, "quest_id")));
+$cached   = $_SESSION["quest_recommend_cache"] ?? null;
+if ($cached && $cached["key"] === $cacheKey && (time() - $cached["time"]) < 60) {
+    $reply = $cached["reply"];
+} else {
+    $reply = askClaude($systemPrompt, "ช่วยแนะนำภารกิจที่ควรไปทำต่อไปให้หน่อย พร้อมเหตุผลสั้นๆ");
+    $_SESSION["quest_recommend_cache"] = ["key" => $cacheKey, "reply" => $reply, "time" => time()];
+}
 
 echo json_encode([
     "reply" => $reply,

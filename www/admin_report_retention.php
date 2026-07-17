@@ -19,6 +19,12 @@ if ($isShop) {
 
 $selectedPlaceId = $isShop ? $ownPlaceId : intval($_GET["place_id"] ?? 0);
 
+// Bound the report to a date range by default so it doesn't scan the site's
+// entire history on every view; "ดูข้อมูลทั้งหมด" opts back into all-time.
+$dateFrom = $_GET["from"] ?? date("Y-m-d", strtotime("-90 days"));
+$dateTo   = $_GET["to"] ?? date("Y-m-d");
+$allTime  = isset($_GET["all"]) && $_GET["all"] === "1";
+
 // A "visit" is one distinct (place, customer, day) combination, coming from either
 // a completed quest at that place or a completed reward redemption at that place.
 $visitSql = "
@@ -32,14 +38,29 @@ $visitSql = "
     ) v
     JOIN users u ON u.id = v.user_id
 ";
+
+$visitConditions = [];
+$visitTypes  = "";
+$visitParams = [];
 if ($selectedPlaceId > 0) {
-    $stmt = $conn->prepare($visitSql . " WHERE v.place_id = ?");
-    $stmt->bind_param("i", $selectedPlaceId);
-    $stmt->execute();
-    $visitRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-} else {
-    $visitRows = $conn->query($visitSql)->fetch_all(MYSQLI_ASSOC);
+    $visitConditions[] = "v.place_id = ?";
+    $visitTypes  .= "i";
+    $visitParams[] = $selectedPlaceId;
 }
+if (!$allTime) {
+    $visitConditions[] = "v.visit_date BETWEEN ? AND ?";
+    $visitTypes  .= "ss";
+    $visitParams[] = $dateFrom;
+    $visitParams[] = $dateTo;
+}
+
+$visitWhere = $visitConditions ? " WHERE " . implode(" AND ", $visitConditions) : "";
+$stmt = $conn->prepare($visitSql . $visitWhere);
+if ($visitParams) {
+    $stmt->bind_param($visitTypes, ...$visitParams);
+}
+$stmt->execute();
+$visitRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $byPlace = [];
 $userNames = [];
@@ -111,7 +132,17 @@ if (!$isShop) {
 }
 
 $selectedPlaceName = $selectedPlaceId > 0 ? ($placeNames[$selectedPlaceId] ?? "") : "";
-$pdfHref = "admin_report_retention_pdf.php" . ($selectedPlaceId > 0 ? "?place_id=" . $selectedPlaceId : "");
+
+$reportQuery = [];
+if ($selectedPlaceId > 0) $reportQuery["place_id"] = $selectedPlaceId;
+if ($allTime) {
+    $reportQuery["all"] = "1";
+} else {
+    $reportQuery["from"] = $dateFrom;
+    $reportQuery["to"]   = $dateTo;
+}
+$reportQueryString = http_build_query($reportQuery);
+$pdfHref = "admin_report_retention_pdf.php" . ($reportQueryString ? "?" . $reportQueryString : "");
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -215,6 +246,26 @@ $pdfHref = "admin_report_retention_pdf.php" . ($selectedPlaceId > 0 ? "?place_id
         <?php endif; ?>
       </div>
     <?php endif; ?>
+
+    <form method="get" class="filter-card">
+      <?php if ($selectedPlaceId > 0): ?>
+        <input type="hidden" name="place_id" value="<?= $selectedPlaceId ?>">
+      <?php endif; ?>
+      <div>
+        <label>จากวันที่</label>
+        <input type="date" name="from" value="<?= e($dateFrom) ?>" <?= $allTime ? 'disabled' : '' ?>>
+      </div>
+      <div>
+        <label>ถึงวันที่</label>
+        <input type="date" name="to" value="<?= e($dateTo) ?>" <?= $allTime ? 'disabled' : '' ?>>
+      </div>
+      <button type="submit" class="adm-btn primary">กรอง</button>
+      <?php if ($allTime): ?>
+        <a href="?<?= e(http_build_query($selectedPlaceId > 0 ? ["place_id" => $selectedPlaceId] : [])) ?>" class="adm-btn" style="background:#eff6ff;color:#2563eb">แสดงแค่ช่วงวันที่</a>
+      <?php else: ?>
+        <a href="?<?= e(http_build_query(($selectedPlaceId > 0 ? ["place_id" => $selectedPlaceId] : []) + ["all" => "1"])) ?>" class="adm-btn" style="background:#eff6ff;color:#2563eb">ดูข้อมูลทั้งหมด</a>
+      <?php endif; ?>
+    </form>
 
     <div class="stat-grid">
       <div class="stat-tile">
