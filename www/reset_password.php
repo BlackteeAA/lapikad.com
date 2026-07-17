@@ -51,7 +51,7 @@ if ($validToken && $_SERVER["REQUEST_METHOD"] === "POST") {
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>ตั้งรหัสผ่านใหม่ | ล่าพิกัด.com</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">

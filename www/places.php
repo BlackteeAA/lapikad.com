@@ -25,7 +25,7 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>สถานที่ | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -279,7 +279,7 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
   }
 
   function applyGps(userLat, userLng) {
-    const cards = document.querySelectorAll('.place-card');
+    const cards = Array.from(document.querySelectorAll('.place-card'));
     let visible = 0;
 
     cards.forEach(card => {
@@ -291,12 +291,14 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
         badge.className = 'dist-badge none';
         badge.textContent = 'ไม่ทราบตำแหน่ง';
         card.classList.remove('locked');
+        card.dataset.sortDist = '-1';
         visible++;
         return;
       }
 
       const dist = haversine(userLat, userLng, parseFloat(card.dataset.lat), parseFloat(card.dataset.lng));
       const km = dist.toFixed(1);
+      card.dataset.sortDist = dist;
 
       if (dist <= MAX_KM) {
         badge.className = 'dist-badge';
@@ -309,6 +311,10 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
         card.classList.add('locked');
       }
     });
+
+    cards.sort((a, b) => parseFloat(a.dataset.sortDist) - parseFloat(b.dataset.sortDist));
+    const list = document.getElementById('place-list');
+    cards.forEach(c => list.appendChild(c));
 
     document.getElementById('no-places-msg').style.display = visible === 0 ? 'block' : 'none';
     setStatus('ok', 'ระบุตำแหน่งสำเร็จ · แสดงสถานที่ในรัศมี ' + MAX_KM + ' กม.');

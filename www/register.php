@@ -2,6 +2,8 @@
 require_once "_db.php";
 
 $msg = "";
+$name = "";
+$email = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!csrf_verify()) redirect("register.php");
@@ -33,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>สมัครสมาชิก | ล่าพิกัด.com</title>
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
@@ -212,10 +214,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <form method="post">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <label>ชื่อผู้ใช้</label>
-        <input name="name" placeholder="กรอกชื่อผู้ใช้" required>
+        <input name="name" value="<?= e($name) ?>" placeholder="กรอกชื่อผู้ใช้" required>
 
         <label>อีเมล</label>
-        <input name="email" type="email" placeholder="กรอกอีเมล" required>
+        <input name="email" type="email" value="<?= e($email) ?>" placeholder="กรอกอีเมล" required>
 
         <label>รหัสผ่าน</label>
         <input name="password" type="password" placeholder="กรอกรหัสผ่าน" required>

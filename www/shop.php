@@ -24,7 +24,7 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>ร้านค้าของฉัน | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -142,6 +142,12 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
           <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
         </div>
         <span>ประวัติการแลกรางวัล</span>
+      </a>
+      <a class="adm-quick-tile" href="admin_report_retention.php">
+        <div class="icon-circle" style="background:#dcfce7">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M4.5 15a8 8 0 0 0 13.9 3.4L20 20M20 9A8 8 0 0 0 6.1 5.6L4 6"/></svg>
+        </div>
+        <span>รายงานลูกค้ากลับมาซ้ำ</span>
       </a>
     </div>
 

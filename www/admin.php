@@ -15,7 +15,7 @@ $adminName = $_SESSION["name"] ?? "Admin";
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>แอดมิน | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -160,6 +160,18 @@ $adminName = $_SESSION["name"] ?? "Admin";
           <svg viewBox="0 0 24 24" style="fill:#a16207"><path d="M4 4h16v4H4V4zm0 6h16v10H4V10zm3 2v2h6v-2H7z"/></svg>
         </div>
         <span>คำขอร้านค้า</span>
+      </a>
+      <a class="adm-quick-tile" href="admin_report_retention.php">
+        <div class="icon-circle" style="background:#dcfce7">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M4.5 15a8 8 0 0 0 13.9 3.4L20 20M20 9A8 8 0 0 0 6.1 5.6L4 6"/></svg>
+        </div>
+        <span>รายงานลูกค้ากลับมาซ้ำ</span>
+      </a>
+      <a class="adm-quick-tile" href="admin_report_location.php">
+        <div class="icon-circle" style="background:#dbeafe">
+          <svg viewBox="0 0 24 24" style="fill:#2563eb"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/></svg>
+        </div>
+        <span>วิเคราะห์ทำเลก่อนเปิดร้าน</span>
       </a>
     </div>
 

@@ -59,7 +59,7 @@ $placesJson = json_encode(array_map(fn($p) => [
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>หน้าหลัก | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -272,6 +272,19 @@ $placesJson = json_encode(array_map(fn($p) => [
     .db-nearby-head svg { width:18px;height:18px;fill:#2563eb; }
     .db-nearby-head a {
       margin-left:auto; font-size:13px; color:#2563eb; font-weight:500; text-decoration:none;
+      display:inline-flex; align-items:center; gap:2px; white-space:nowrap;
+    }
+    .db-nearby-head a .chevron { font-size:16px; line-height:1; }
+    .db-nearby-head a.db-nearby-badge {
+      margin-left:0;
+      padding:2px 8px;
+      border:1.5px solid #ef4444;
+      border-radius:999px;
+      color:#ef4444;
+      font-size:10px; font-weight:600;
+      white-space:nowrap;
+      text-decoration:none;
+      cursor:pointer;
     }
 
     #db-map {
@@ -443,7 +456,8 @@ $placesJson = json_encode(array_map(fn($p) => [
     <div class="db-nearby-head" id="nearby-section">
       <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
       <h2>สถานที่ใกล้คุณ</h2>
-      <a href="places.php">ดูทั้งหมด</a>
+      <a href="ai_quests.php" class="db-nearby-badge">แนะนำสถานที่หรือภารกิจใกล้เคียง!</a>
+      <a href="places.php">ดูทั้งหมด<span class="chevron">&rsaquo;</span></a>
     </div>
 
     <div id="db-map"></div>

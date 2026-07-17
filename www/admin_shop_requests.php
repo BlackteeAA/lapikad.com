@@ -73,6 +73,9 @@ $requests = $conn->query("
     JOIN users u ON u.id = sr.user_id
     ORDER BY (sr.status='pending') DESC, sr.id DESC
 ")->fetch_all(MYSQLI_ASSOC);
+
+$pendingRequests  = array_values(array_filter($requests, fn($r) => $r["status"] === "pending"));
+$reviewedRequests = array_values(array_filter($requests, fn($r) => $r["status"] !== "pending"));
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -80,7 +83,7 @@ $requests = $conn->query("
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>คำขอร้านค้า | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -100,6 +103,11 @@ $requests = $conn->query("
     .adm-alert.bad  { background:#fff1f2;color:#e11d48;border:1px solid #fecdd3; }
 
     .pg-card { background:#fff;border-radius:20px;padding:8px 18px;box-shadow:0 2px 10px rgba(15,23,42,.06); }
+
+    .sec-head { display:flex;align-items:center;gap:8px;margin:20px 0 10px; }
+    .sec-head:first-of-type { margin-top:0; }
+    .sec-head h2 { font-size:15px;font-weight:700;color:#0f172a;margin:0; }
+    .sec-head .sec-count { font-size:11.5px;font-weight:600;color:#64748b;background:#f1f5f9;padding:2px 9px;border-radius:99px; }
 
     .row-item { display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap; }
     .row-item:last-child { border-bottom:none; }
@@ -151,11 +159,9 @@ $requests = $conn->query("
       <div class="adm-alert <?= $msgType ?>"><?= e($msg) ?></div>
     <?php endif; ?>
 
-    <div class="pg-card">
-      <?php if (empty($requests)): ?>
-        <div class="row-item"><span style="font-size:13px;color:#94a3b8">ยังไม่มีคำขอสมัครร้านค้า</span></div>
-      <?php else: ?>
-        <?php foreach ($requests as $r): ?>
+    <?php
+      function render_shop_request_row(array $r): void {
+    ?>
           <div class="row-item">
             <?php if ($r["image_url"]): ?>
               <img src="<?= e($r["image_url"]) ?>" alt="">
@@ -169,7 +175,10 @@ $requests = $conn->query("
               <?php if (!empty($r["description"])): ?><span><?= e($r["description"]) ?></span><?php endif; ?>
               <?php if ($r["location_text"]): ?><span><?= e($r["location_text"]) ?></span><?php endif; ?>
               <?php if ($r["lat"] !== null && $r["lng"] !== null): ?>
-                <span><?= number_format((float)$r["lat"], 6) ?>, <?= number_format((float)$r["lng"], 6) ?></span>
+                <span>
+                  <?= number_format((float)$r["lat"], 6) ?>, <?= number_format((float)$r["lng"], 6) ?>
+                  · <a href="admin_report_location.php?lat=<?= urlencode($r["lat"]) ?>&lng=<?= urlencode($r["lng"]) ?>&radius=300" style="color:#2563eb;font-weight:600">วิเคราะห์ทำเล</a>
+                </span>
               <?php endif; ?>
               <?php
                 $contactParts = array_filter([
@@ -209,7 +218,31 @@ $requests = $conn->query("
               <?php endif; ?>
             </div>
           </div>
-        <?php endforeach; ?>
+    <?php
+      }
+    ?>
+
+    <div class="sec-head">
+      <h2>รอตรวจสอบ</h2>
+      <span class="sec-count"><?= count($pendingRequests) ?></span>
+    </div>
+    <div class="pg-card">
+      <?php if (empty($pendingRequests)): ?>
+        <div class="row-item"><span style="font-size:13px;color:#94a3b8">ไม่มีคำขอที่รอตรวจสอบ</span></div>
+      <?php else: ?>
+        <?php foreach ($pendingRequests as $r) render_shop_request_row($r); ?>
+      <?php endif; ?>
+    </div>
+
+    <div class="sec-head">
+      <h2>ตรวจสอบแล้ว</h2>
+      <span class="sec-count"><?= count($reviewedRequests) ?></span>
+    </div>
+    <div class="pg-card">
+      <?php if (empty($reviewedRequests)): ?>
+        <div class="row-item"><span style="font-size:13px;color:#94a3b8">ยังไม่มีร้านที่ตรวจสอบแล้ว</span></div>
+      <?php else: ?>
+        <?php foreach ($reviewedRequests as $r) render_shop_request_row($r); ?>
       <?php endif; ?>
     </div>
 

@@ -2,3 +2,4 @@
 .vscode/sftp.json
 www/_db_config.php
 www/_mail_config.php
+www/_claude_config.php

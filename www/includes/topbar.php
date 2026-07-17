@@ -10,6 +10,13 @@ $isLoggedIn = isset($_SESSION["user_id"]);
 $userName = $_SESSION["name"] ?? "ผู้ใช้";
 $userRole = $_SESSION["role"] ?? "";
 
+// Global "น้องพิกัด" AI chat entry point — hidden on the chat page itself.
+$aiGuideLink = "ai_guide.php";
+if ($currentPage === "place.php" && !empty($_GET["id"])) {
+    $aiGuideLink .= "?place_id=" . intval($_GET["id"]);
+}
+$showAiChatFab = $isLoggedIn && $currentPage !== "ai_guide.php";
+
 $notifications = [];
 if ($isLoggedIn && isset($conn)) {
     $notifId = intval($_SESSION["user_id"]);
@@ -117,6 +124,7 @@ function notifTimeAgo($dt) {
     <?php if ($isLoggedIn): ?>
       <a href="dashboard.php">หน้าหลัก</a>
       <a href="places.php">สถานที่และภารกิจ</a>
+      <a href="ai_quests.php">ภารกิจแนะนำ</a>
       <a href="rewards.php">รางวัล</a>
       <a href="profile.php">โปรไฟล์</a>
       <?php if ($userRole === "admin"): ?>
@@ -157,6 +165,52 @@ function notifTimeAgo($dt) {
     <span>ฉัน</span>
   </a>
 </nav>
+
+<?php if ($showAiChatFab): ?>
+<style>
+  .ai-chat-fab {
+    position: fixed;
+    right: 16px;
+    bottom: 86px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(37,99,235,.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    overflow: hidden;
+    z-index: 950;
+  }
+  .ai-chat-fab img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .ai-chat-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid #fff;
+    animation: aiChatPulse 1.6s infinite;
+  }
+  .ai-chat-badge.hide { display: none; }
+  @keyframes aiChatPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.55); }
+    70%  { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+</style>
+<a href="<?= e($aiGuideLink) ?>" class="ai-chat-fab" id="ai-chat-fab" aria-label="แชทกับน้องพิกัด AI ไกด์นำเที่ยว">
+  <img src="assets/images/nong-pikad.png" alt="น้องพิกัด">
+  <span class="ai-chat-badge<?= isset($_COOKIE["ai_chat_seen"]) ? " hide" : "" ?>" id="ai-chat-badge"></span>
+</a>
+<script>
+  document.getElementById('ai-chat-fab').addEventListener('click', function () {
+    document.cookie = "ai_chat_seen=1; max-age=31536000; path=/";
+  });
+</script>
+<?php endif; ?>
 
 <script>
 (function(){
