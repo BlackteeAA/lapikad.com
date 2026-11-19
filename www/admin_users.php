@@ -44,9 +44,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $msg = "อัพเดทสถานะผู้ใช้สำเร็จ";
         }
     }
+
+    if ($action === "toggle_organizer") {
+        $targetUserId = intval($_POST["user_id"] ?? 0);
+        if ($targetUserId > 0) {
+            $stmt = $conn->prepare("UPDATE users SET is_organizer = 1 - is_organizer WHERE id=?");
+            $stmt->bind_param("i", $targetUserId);
+            $stmt->execute();
+            $msg = "อัพเดทสิทธิ์ผู้จัดกิจกรรม (สภา) สำเร็จ";
+        }
+    }
 }
 
-$users = $conn->query("SELECT id,name,email,role,points,avatar_url,is_banned FROM users ORDER BY points DESC")->fetch_all(MYSQLI_ASSOC);
+$users = $conn->query("SELECT id,name,email,role,points,avatar_url,is_banned,is_organizer FROM users ORDER BY points DESC")->fetch_all(MYSQLI_ASSOC);
 $logs  = $conn->query("SELECT pl.*,u.name AS uname FROM point_logs pl JOIN users u ON u.id=pl.user_id ORDER BY pl.id DESC LIMIT 15")->fetch_all(MYSQLI_ASSOC);
 $autoOpen = $_GET["open"] ?? "";
 ?>
@@ -183,6 +193,17 @@ $autoOpen = $_GET["open"] ?? "";
               <b>★ <?= number_format($u["points"]) ?></b>
             </div>
             <button type="button" class="pill-btn" onclick="quickAddPoints(<?= $u["id"] ?>)">เพิ่มคะแนน</button>
+            <?php if ($u["role"] !== "admin"): ?>
+              <form method="post">
+                <input type="hidden" name="action" value="toggle_organizer">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                <input type="hidden" name="user_id" value="<?= $u["id"] ?>">
+                <button type="submit" class="pill-btn" title="สิทธิ์สร้างกิจกรรมโรงเรียน"
+                        style="<?= !empty($u["is_organizer"]) ? 'background:#4f46e5;color:#fff;border-color:#4f46e5' : 'background:#fff;color:#4f46e5;border-color:#c7d2fe' ?>">
+                  <?= !empty($u["is_organizer"]) ? "✓ สภา" : "+ สภา" ?>
+                </button>
+              </form>
+            <?php endif; ?>
             <?php if (!$isSelf): ?>
               <form method="post">
                 <input type="hidden" name="action" value="toggle_ban">

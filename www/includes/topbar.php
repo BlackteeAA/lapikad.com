@@ -125,6 +125,7 @@ function notifTimeAgo($dt) {
       <a href="dashboard.php">หน้าหลัก</a>
       <a href="places.php">สถานที่และภารกิจ</a>
       <a href="ai_quests.php">ภารกิจแนะนำ</a>
+      <a href="events.php">กิจกรรมโรงเรียน</a>
       <a href="rewards.php">รางวัล</a>
       <a href="profile.php">โปรไฟล์</a>
       <?php if ($userRole === "admin"): ?>

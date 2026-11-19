@@ -161,6 +161,12 @@ $adminName = $_SESSION["name"] ?? "Admin";
         </div>
         <span>คำขอร้านค้า</span>
       </a>
+      <a class="adm-quick-tile" href="event_manage.php">
+        <div class="icon-circle" style="background:#e0e7ff">
+          <svg viewBox="0 0 24 24" style="fill:#4f46e5"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z"/></svg>
+        </div>
+        <span>กิจกรรมโรงเรียน</span>
+      </a>
       <a class="adm-quick-tile" href="admin_report_retention.php">
         <div class="icon-circle" style="background:#dcfce7">
           <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M4.5 15a8 8 0 0 0 13.9 3.4L20 20M20 9A8 8 0 0 0 6.1 5.6L4 6"/></svg>

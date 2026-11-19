@@ -411,6 +411,18 @@ $placesJson = json_encode(array_map(fn($p) => [
       </a>
     </div>
 
+    <!-- School events entry -->
+    <a href="events.php" style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border-radius:18px;padding:14px 16px;margin:0 0 16px;text-decoration:none;box-shadow:0 8px 20px rgba(99,102,241,.25)">
+      <span style="width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#fff"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+      </span>
+      <span style="flex:1;min-width:0">
+        <strong style="display:block;font-size:15px">กิจกรรมโรงเรียน</strong>
+        <span style="font-size:12px;opacity:.9">เช็คชื่อเข้าร่วมกิจกรรมสภานักเรียนด้วย QR</span>
+      </span>
+      <span style="font-size:22px">&rsaquo;</span>
+    </a>
+
     <?php if ($showShopPromo): ?>
     <!-- Shop promo -->
     <div class="db-shop-promo" id="shop-promo">
