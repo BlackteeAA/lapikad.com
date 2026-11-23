@@ -10,6 +10,12 @@ $isLoggedIn = isset($_SESSION["user_id"]);
 $userName = $_SESSION["name"] ?? "ผู้ใช้";
 $userRole = $_SESSION["role"] ?? "";
 
+$isOrganizer = false;
+if ($isLoggedIn && isset($conn)) {
+    $orgR = $conn->query("SELECT is_organizer FROM users WHERE id=" . intval($_SESSION["user_id"]));
+    if ($orgR) { $orgRow = $orgR->fetch_assoc(); $isOrganizer = !empty($orgRow["is_organizer"]); }
+}
+
 // Global "น้องพิกัด" AI chat entry point — hidden on the chat page itself.
 $aiGuideLink = "ai_guide.php";
 if ($currentPage === "place.php" && !empty($_GET["id"])) {
@@ -133,6 +139,9 @@ function notifTimeAgo($dt) {
       <?php endif; ?>
       <?php if ($userRole === "shop"): ?>
         <a href="shop.php">ร้านค้าของฉัน</a>
+      <?php endif; ?>
+      <?php if ($userRole !== "admin" && $isOrganizer): ?>
+        <a href="council_rewards.php">รางวัลโรงเรียน (สภา)</a>
       <?php endif; ?>
       <a href="logout.php" class="danger-link">ออกจากระบบ</a>
     <?php else: ?>

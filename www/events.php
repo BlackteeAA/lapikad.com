@@ -1,7 +1,10 @@
 <?php
 require_once "_events.php";
 
-$userId      = intval($_SESSION["user_id"]);
+$userId = intval($_SESSION["user_id"]);
+if (($_SESSION["role"] ?? "") !== "admin" && !hasStudentInfo($conn, $userId)) {
+    redirect("event_student_info.php?next=events.php");
+}
 $isOrganizer = isEventOrganizer($conn, $userId);
 
 $stmt = $conn->prepare("SELECT COUNT(*) c FROM event_staff WHERE user_id=?");

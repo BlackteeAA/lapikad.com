@@ -105,7 +105,7 @@ $secondsLeft = max(0, strtotime($row["expires_at"]) - time());
       <p class="rc-sub"><?= e($row["reward_name"]) ?> · ร้าน <?= e($row["place_name"]) ?></p>
 
       <div class="qr-box">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=<?= urlencode("https://xn--12c2b2a1a6ddp1n.com/shop_redeem_confirm.php?code=" . $row["code"]) ?>" alt="QR Code">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&ecc=H&data=<?= urlencode("https://xn--12c2b2a1a6ddp1n.com/shop_redeem_confirm.php?code=" . $row["code"]) ?>" alt="QR Code">
       </div>
 
       <code class="code-text"><?= e($row["code"]) ?></code>

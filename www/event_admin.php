@@ -101,7 +101,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 $stmt = $conn->prepare("
-    SELECT a.user_id, a.method, a.checked_in_at, u.name, u.email, u.avatar_url, s.name AS scanner_name
+    SELECT a.user_id, a.method, a.checked_in_at, u.name, u.student_name, u.class_room, u.student_no, u.email, u.avatar_url, s.name AS scanner_name
     FROM event_attendances a
     JOIN users u ON u.id = a.user_id
     LEFT JOIN users s ON s.id = a.checked_in_by
@@ -111,6 +111,10 @@ $stmt = $conn->prepare("
 $stmt->bind_param("i", $eventId);
 $stmt->execute();
 $attendees = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+foreach ($attendees as &$a) {
+    $a["display_name"] = $a["student_name"] !== "" && $a["student_name"] !== null ? $a["student_name"] : $a["name"];
+}
+unset($a);
 
 $byStaff = count(array_filter($attendees, fn($a) => $a["method"] !== "self_scan"));
 $bySelf  = count($attendees) - $byStaff;
@@ -191,6 +195,7 @@ $methodLabel = ["staff_scan" => "สภาสแกน", "self_scan" => "สแ�
         <span class="adm-btn ghost" style="opacity:.5;cursor:default">ปิดการสแกนเอง</span>
       <?php endif; ?>
       <a class="adm-btn ghost" href="event_export.php?id=<?= $eventId ?>">ดาวน์โหลดรายชื่อ (Excel)</a>
+      <a class="adm-btn ghost" href="event_export_pdf.php?id=<?= $eventId ?>" target="_blank">พิมพ์ / PDF</a>
       <button type="button" class="adm-btn ghost" onclick="toggle('manual-form')">+ เพิ่มชื่อเอง</button>
     </div>
 
@@ -221,16 +226,22 @@ $methodLabel = ["staff_scan" => "สภาสแกน", "self_scan" => "สแ�
       <?php endif; ?>
       <div id="att-list">
       <?php foreach ($attendees as $a): ?>
-        <div class="row-item" data-search="<?= e(mb_strtolower($a["name"] . " " . $a["email"], "UTF-8")) ?>">
+        <div class="row-item" data-search="<?= e(mb_strtolower($a["display_name"] . " " . $a["email"], "UTF-8")) ?>">
           <div class="avatar">
             <?php if (!empty($a["avatar_url"])): ?>
               <img src="<?= e($a["avatar_url"]) ?>" alt="">
             <?php else: ?>
-              <?= e(mb_substr($a["name"], 0, 1, "UTF-8")) ?>
+              <?= e(mb_substr($a["display_name"], 0, 1, "UTF-8")) ?>
             <?php endif; ?>
           </div>
           <div class="row-info">
-            <strong><?= e($a["name"]) ?></strong>
+            <strong><?= e($a["display_name"]) ?></strong>
+            <?php if (!empty($a["class_room"]) || !empty($a["student_no"])): ?>
+              <div class="tag-row">
+                <?php if (!empty($a["class_room"])): ?><span class="tag">ชั้น <?= e($a["class_room"]) ?></span><?php endif; ?>
+                <?php if (!empty($a["student_no"])): ?><span class="tag">เลขที่ <?= e($a["student_no"]) ?></span><?php endif; ?>
+              </div>
+            <?php endif; ?>
             <span><?= date("H:i", strtotime($a["checked_in_at"])) ?> น. · <?= $methodLabel[$a["method"]] ?? "" ?><?= $a["scanner_name"] ? " โดย " . e($a["scanner_name"]) : "" ?></span>
           </div>
           <?php if ($isOwner): ?>

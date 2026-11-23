@@ -2,9 +2,12 @@
 require_once "_events.php";
 
 $userId = intval($_SESSION["user_id"]);
+if (($_SESSION["role"] ?? "") !== "admin" && !hasStudentInfo($conn, $userId)) {
+    redirect("event_student_info.php?next=event_my_qr.php");
+}
 $token  = getEventToken($conn, $userId);
 
-$stmt = $conn->prepare("SELECT name, avatar_url FROM users WHERE id=?");
+$stmt = $conn->prepare("SELECT name, student_name, avatar_url FROM users WHERE id=?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $me = $stmt->get_result()->fetch_assoc();
@@ -13,6 +16,8 @@ $stmt = $conn->prepare("SELECT COALESCE(MAX(id),0) m FROM event_attendances WHER
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $lastAttendanceId = intval($stmt->get_result()->fetch_assoc()["m"]);
+
+$displayName = $me["student_name"] !== "" && $me["student_name"] !== null ? $me["student_name"] : $me["name"];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -69,10 +74,10 @@ $lastAttendanceId = intval($stmt->get_result()->fetch_assoc()["m"]);
       <?php if (!empty($me["avatar_url"])): ?>
         <img src="<?= e($me["avatar_url"]) ?>" alt="">
       <?php else: ?>
-        <?= e(mb_substr($me["name"], 0, 1, "UTF-8")) ?>
+        <?= e(mb_substr($displayName, 0, 1, "UTF-8")) ?>
       <?php endif; ?>
     </div>
-    <h1><?= e($me["name"]) ?></h1>
+    <h1><?= e($displayName) ?></h1>
     <p class="sub">QR เช็คชื่อประจำตัว</p>
 
     <?php if ($token): ?>

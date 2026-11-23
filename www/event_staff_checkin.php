@@ -22,7 +22,7 @@ if (!$event["is_open"]) {
     $title   = "ปิดเช็คชื่ออยู่";
     $message = "เปิดเช็คชื่อกิจกรรมก่อนจึงจะสแกนได้";
 } elseif ($token !== "") {
-    $stmt = $conn->prepare("SELECT id, name, avatar_url, is_banned FROM users WHERE event_token=?");
+    $stmt = $conn->prepare("SELECT id, name, student_name, class_room, student_no, avatar_url, is_banned FROM users WHERE event_token=?");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $student = $stmt->get_result()->fetch_assoc();
@@ -32,6 +32,8 @@ if (!$event["is_open"]) {
         $title   = "ไม่พบนักเรียน";
         $message = "QR นี้ไม่มีในระบบ";
     } else {
+        $student["display_name"] = $student["student_name"] !== "" && $student["student_name"] !== null
+            ? $student["student_name"] : $student["name"];
         $r = recordAttendance($conn, $event, intval($student["id"]), "staff_scan", $userId);
         if ($r === "ok") {
             $state = "ok";
@@ -79,6 +81,7 @@ $scanUrl = "event_staff_scan.php?id=" . $eventId;
     .avatar img { width:100%;height:100%;object-fit:cover; }
     .mark { font-size:64px;line-height:1;margin-bottom:12px; }
     .name { font-size:28px;font-weight:700;margin-bottom:4px; }
+    .class-info { font-size:16px;opacity:.9;margin-bottom:4px; }
     h1 { font-size:20px;font-weight:600;opacity:.95; }
     p  { font-size:14px;opacity:.9;margin-top:6px; }
     .count { margin-top:18px;font-size:14px;background:rgba(0,0,0,.15);border-radius:99px;padding:6px 16px; }
@@ -98,10 +101,13 @@ $scanUrl = "event_staff_scan.php?id=" . $eventId;
       <?php if (!empty($student["avatar_url"])): ?>
         <img src="<?= e($student["avatar_url"]) ?>" alt="">
       <?php else: ?>
-        <?= e(mb_substr($student["name"], 0, 1, "UTF-8")) ?>
+        <?= e(mb_substr($student["display_name"], 0, 1, "UTF-8")) ?>
       <?php endif; ?>
     </div>
-    <div class="name"><?= e($student["name"]) ?></div>
+    <div class="name"><?= e($student["display_name"]) ?></div>
+    <?php if (!empty($student["class_room"]) || !empty($student["student_no"])): ?>
+      <div class="class-info"><?= e($student["class_room"]) ?><?= !empty($student["student_no"]) ? " · เลขที่ " . e($student["student_no"]) : "" ?></div>
+    <?php endif; ?>
   <?php else: ?>
     <div class="mark">!</div>
   <?php endif; ?>

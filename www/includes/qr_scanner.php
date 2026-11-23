@@ -410,11 +410,13 @@
     // what zoom constraint we pass. facingMode binds directly to the
     // physical wide-angle lens and avoids that.
     const facingCfg = {
-      fps: 30,
+      fps: 15,
       qrbox: () => ({ width: 260, height: 260 }),
       disableFlip: false,
       videoConstraints: {
         facingMode: { exact: isIPad ? 'user' : 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
         zoom: 1,
         focusMode: 'continuous'
       }
@@ -439,11 +441,13 @@
           }) || cams[cams.length - 1]);
 
       const cfg = {
-        fps: 30,
+        fps: 15,
         qrbox: () => ({ width: 260, height: 260 }),
         disableFlip: false,
         videoConstraints: {
           deviceId: { exact: cam.id },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
           zoom: 1,
           focusMode: 'continuous'
         }

@@ -9,7 +9,7 @@ $event   = getEvent($conn, $eventId);
 if (!eventRole($conn, $event, $userId)) redirect("event_manage.php");
 
 $stmt = $conn->prepare("
-    SELECT u.name, u.email, a.method, a.checked_in_at, s.name AS scanner_name
+    SELECT u.name, u.student_name, u.class_room, u.student_no, u.email, a.method, a.checked_in_at, s.name AS scanner_name
     FROM event_attendances a
     JOIN users u ON u.id = a.user_id
     LEFT JOIN users s ON s.id = a.checked_in_by
@@ -29,19 +29,31 @@ function csvSafe($v) {
     return preg_match('/^[=+\-@\t\r]/', $v) ? "'" . $v : $v;
 }
 
+// Force Excel to keep a value as literal text. Needed for ชั้น/เลขที่ (e.g. "5/11"),
+// which Excel's CSV auto-detection otherwise reads as a date ("5-พ.ย.") or strips
+// leading zeros from as a number. Wrapping in ="..." makes Excel evaluate it as a
+// formula whose result is just the quoted text — also immune to formula injection
+// since the content sits inside the quotes rather than starting a new formula.
+function csvText($v) {
+    return '="' . str_replace('"', '""', (string)$v) . '"';
+}
+
 header("Content-Type: text/csv; charset=utf-8");
 header("Content-Disposition: attachment; filename=\"$filename\"");
 
 $out = fopen("php://output", "w");
 fwrite($out, "\xEF\xBB\xBF");
 fputcsv($out, [csvSafe($event["title"])]);
-fputcsv($out, ["ลำดับ", "ชื่อ", "อีเมล", "เวลาเช็คชื่อ", "วิธี", "ผู้สแกน"]);
+fputcsv($out, ["ลำดับ", "ชื่อ", "ชั้น", "เลขที่", "อีเมล", "เวลาเช็คชื่อ", "วิธี", "ผู้สแกน"]);
 foreach ($rows as $i => $r) {
+    $displayName = $r["student_name"] !== "" && $r["student_name"] !== null ? $r["student_name"] : $r["name"];
     fputcsv($out, [
         $i + 1,
-        csvSafe($r["name"]),
+        csvSafe($displayName),
+        csvText($r["class_room"] ?? ""),
+        csvText($r["student_no"] ?? ""),
         csvSafe($r["email"]),
-        $r["checked_in_at"],
+        csvText($r["checked_in_at"]),
         $methodLabel[$r["method"]] ?? $r["method"],
         csvSafe($r["scanner_name"] ?? ""),
     ]);

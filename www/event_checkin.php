@@ -5,6 +5,9 @@
 require_once "_events.php";
 
 $userId  = intval($_SESSION["user_id"]);
+if (($_SESSION["role"] ?? "") !== "admin" && !hasStudentInfo($conn, $userId)) {
+    redirect("event_student_info.php?next=event_scan.php");
+}
 $eventId = intval($_GET["e"] ?? 0);
 $token   = trim($_GET["t"] ?? "");
 

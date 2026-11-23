@@ -28,7 +28,7 @@ if ($role === "shop" && intval($quest["owner_user_id"]) !== intval($_SESSION["us
 
 $baseUrl = "https://xn--12c2b2a1a6ddp1n.com";
 $qrText = $baseUrl . "/qr_claim.php?code=" . urlencode($quest["target_code"]);
-$qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" . urlencode($qrText);
+$qrImage = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&ecc=H&data=" . urlencode($qrText);
 ?>
 <!DOCTYPE html>
 <html lang="th">

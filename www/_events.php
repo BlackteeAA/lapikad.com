@@ -20,6 +20,20 @@ function isEventOrganizer($conn, $userId) {
     return $row && !empty($row["is_organizer"]);
 }
 
+// Has this student already filled in their real name/class/roll-number?
+// Collected inside the events module itself (event_student_info.php), separate
+// from the account's login name (users.name), which is often just a nickname.
+function hasStudentInfo($conn, $userId) {
+    $stmt = $conn->prepare("SELECT student_name, class_room, student_no FROM users WHERE id=?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row
+        && trim($row["student_name"] ?? "") !== ""
+        && trim($row["class_room"] ?? "") !== ""
+        && trim($row["student_no"] ?? "") !== "";
+}
+
 function getEvent($conn, $eventId) {
     $stmt = $conn->prepare("SELECT * FROM events WHERE id=?");
     $stmt->bind_param("i", $eventId);
@@ -104,7 +118,7 @@ function eventCheckinUrl($event, $slot = null) {
 }
 
 function qrImageUrl($data, $size = 300) {
-    return "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&margin=10&data=" . urlencode($data);
+    return "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&margin=10&ecc=H&data=" . urlencode($data);
 }
 
 // Records attendance and awards points (if any). Returns "ok", "already" or "error".
