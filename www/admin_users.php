@@ -155,6 +155,7 @@ function renderUserEntry($u, $schools, $selfId, $inSchool) {
         <b>★ <?= number_format($u["points"]) ?></b>
       </div>
       <button type="button" class="pill-btn" onclick="quickAddPoints(<?= $u["id"] ?>)">เพิ่มคะแนน</button>
+      <a class="pill-btn" href="admin_shop_points.php?user_id=<?= $u["id"] ?>" style="text-decoration:none">แต้มร้าน</a>
       <?php // every user, admins included, can be given a school + role
         $shortRole = ["teacher" => "ครู", "council" => "สภา", "student" => "นักเรียน"][$u["school_role"] ?? ""] ?? "";
         $roleColor = ["teacher" => "#db2777", "council" => "#4f46e5", "student" => "#0ea5e9"][$u["school_role"] ?? ""] ?? null;
@@ -344,7 +345,10 @@ $autoOpen = $_GET["open"] ?? "";
 
     <div class="pg-head">
       <h1>เพิ่มคะแนนให้ผู้ใช้</h1>
-      <button type="button" class="adm-btn primary" onclick="revealAndScroll('add-points-form')">+ เพิ่มคะแนน</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="adm-btn" href="admin_shop_points.php" style="text-decoration:none">แต้มแต่ละร้าน</a>
+        <button type="button" class="adm-btn primary" onclick="revealAndScroll('add-points-form')">+ เพิ่มคะแนน</button>
+      </div>
     </div>
 
     <?php if ($msg): ?>

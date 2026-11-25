@@ -147,6 +147,12 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
         </div>
         <span>จัดการภารกิจ</span>
       </a>
+      <a class="adm-quick-tile" href="shop_location.php">
+        <div class="icon-circle" style="background:#fce7f3">
+          <svg viewBox="0 0 24 24" style="fill:#db2777"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <span>ที่ตั้งร้าน<br>(จังหวัด/อำเภอ)</span>
+      </a>
       <a class="adm-quick-tile" href="admin_report_retention.php">
         <div class="icon-circle" style="background:#dcfce7">
           <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M4.5 15a8 8 0 0 0 13.9 3.4L20 20M20 9A8 8 0 0 0 6.1 5.6L4 6"/></svg>
@@ -164,7 +170,7 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
         <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f1f5f9">
           <div style="flex:1;min-width:0">
             <strong style="display:block;font-size:14px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= e($t["name"]) ?></strong>
-            <span style="font-size:12px;color:#94a3b8"><?= $t["kind"] === "checkin" ? "เช็คอิน" : "แลกรางวัล" . ($t["note"] ? ": " . e($t["note"]) : "") ?> · <?= e(thaiTimestampText(strtotime($t["created_at"]))) ?></span>
+            <span style="font-size:12px;color:#94a3b8"><?= e(shopTxnLabel($t)) ?> · <?= e(thaiTimestampText(strtotime($t["created_at"]))) ?></span>
           </div>
           <b style="color:<?= $plus ? "#16a34a" : "#dc2626" ?>"><?= $plus ? "+" : "" ?><?= intval($t["points"]) ?></b>
         </div>

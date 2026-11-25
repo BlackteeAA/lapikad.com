@@ -1,5 +1,6 @@
 <?php
 require_once "_auth.php";
+require_once "_thai_location.php";
 
 $userId = intval($_SESSION["user_id"]);
 $role   = $_SESSION["role"] ?? "";
@@ -18,6 +19,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $name        = trim($_POST["shop_name"] ?? "");
         $nameEn      = trim($_POST["shop_name_en"] ?? "");
         $loc         = trim($_POST["location_text"] ?? "");
+        $province    = cleanThaiArea($_POST["province"] ?? "");
+        $district    = cleanThaiArea($_POST["district"] ?? "");
         $category    = trim($_POST["category"] ?? "");
         $description = trim($_POST["description"] ?? "");
         $lat         = $_POST["lat"] !== "" ? floatval($_POST["lat"]) : null;
@@ -55,6 +58,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $nameEn, $description, $phone, $lineId, $facebook, $contactMail, $hours, $highlights
             );
             $stmt->execute();
+            $newReqId = $conn->insert_id;
+            try {
+                // Separate so the application still works before sql/add_shop_location.sql is run.
+                $stmt = $conn->prepare("UPDATE shop_requests SET province=?, district=? WHERE id=?");
+                $stmt->bind_param("ssi", $province, $district, $newReqId);
+                $stmt->execute();
+            } catch (mysqli_sql_exception $e) {}
             $msg = "ส่งคำขอสมัครร้านค้าสำเร็จ กรุณารอแอดมินตรวจสอบ";
         } else { $msg = "กรุณากรอกชื่อร้าน ประเภทร้าน และคำอธิบายร้านค้าให้ครบ"; $msgType = "bad"; }
     }
@@ -411,6 +421,18 @@ $shopCategories = array_values(array_unique(array_merge($baseCategories, $usedCa
             </div>
           </div>
 
+          <?php [$provSel, $distInput] = thaiLocationFields($conn, "", "", ["sa-select", "sa-input"],
+                fn($sel) => '<div class="sa-select-wrap">' . $sel . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>'); ?>
+          <div class="sa-field">
+            <label>จังหวัด</label>
+            <?= $provSel ?>
+          </div>
+          <div class="sa-field">
+            <label>อำเภอ</label>
+            <?= $distInput ?>
+            <p class="sa-hint">ลูกค้าใช้ค้นหาร้านตามจังหวัด/อำเภอในหน้าสถานที่</p>
+          </div>
+
           <div class="sa-field">
             <label>ที่อยู่ร้านค้า <span class="opt">(ไม่บังคับ)</span></label>
             <input class="sa-input" name="location_text" placeholder="เช่น อำเภอกุฉินารายณ์ จังหวัดกาฬสินธุ์">
@@ -579,6 +601,7 @@ $shopCategories = array_values(array_unique(array_merge($baseCategories, $usedCa
       summaryRow('LINE', esc(document.querySelector('[name="line_id"]').value)),
       summaryRow('Facebook', esc(document.querySelector('[name="facebook_url"]').value)),
       summaryRow('อีเมลติดต่อ', esc(document.querySelector('[name="contact_email"]').value)),
+      summaryRow('จังหวัด / อำเภอ', esc([document.querySelector('[name="province"]').value, document.querySelector('[name="district"]').value].filter(Boolean).join(' / '))),
       summaryRow('ที่อยู่ร้านค้า', esc(document.querySelector('[name="location_text"]').value)),
       summaryRow('พิกัด', (lat && lng) ? (esc(lat) + ', ' + esc(lng)) : ''),
       summaryRow('เวลาเปิด-ปิด', esc(document.querySelector('[name="opening_hours"]').value)),
@@ -638,7 +661,7 @@ $shopCategories = array_values(array_unique(array_merge($baseCategories, $usedCa
   // ── Draft save / restore (localStorage only — file input can't be restored) ──
   var DRAFT_FIELDS = [
     'shop_name','shop_name_en','category','description',
-    'location_text','lat','lng',
+    'province','district','location_text','lat','lng',
     'phone','line_id','facebook_url','contact_email',
     'opening_hours','highlights'
   ];

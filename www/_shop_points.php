@@ -150,6 +150,54 @@ function redeemShopPoints($conn, $placeId, $userId, $points, $note, $byUserId) {
     }
 }
 
+// Admin adds (or, with a negative amount, takes away) a user's points at one shop.
+// Logged as kind 'admin'; it does not count toward the shop's popularity score.
+// Returns ok / invalid / insufficient (would go below 0) / error.
+function adminAdjustShopPoints($conn, $placeId, $userId, $points, $note, $adminId) {
+    $points = intval($points);
+    if ($points === 0 || abs($points) > 100000) return "invalid";
+    $note = mb_substr(trim((string)$note), 0, 150, "UTF-8");
+    $note = $note !== "" ? $note : null;
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("SELECT points FROM user_shop_points WHERE user_id=? AND place_id=? FOR UPDATE");
+        $stmt->bind_param("ii", $userId, $placeId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        if ((intval($row["points"] ?? 0)) + $points < 0) {
+            $conn->rollback();
+            return "insufficient";
+        }
+        $stmt = $conn->prepare("
+            INSERT INTO user_shop_points (user_id, place_id, points) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE points = points + VALUES(points)
+        ");
+        $stmt->bind_param("iii", $userId, $placeId, $points);
+        if (!$stmt->execute()) throw new Exception($conn->error);
+
+        $stmt = $conn->prepare("
+            INSERT INTO shop_point_txns (user_id, place_id, kind, points, shop_points, note, by_user_id)
+            VALUES (?, ?, 'admin', ?, 0, ?, ?)
+        ");
+        $stmt->bind_param("iiisi", $userId, $placeId, $points, $note, $adminId);
+        if (!$stmt->execute()) throw new Exception($conn->error);
+        $conn->commit();
+        return "ok";
+    } catch (Exception $e) {
+        $conn->rollback();
+        return "error";
+    }
+}
+
+// Text for one shop_point_txns row in history lists.
+function shopTxnLabel($t) {
+    $note = !empty($t["note"]) ? ": " . $t["note"] : "";
+    if ($t["kind"] === "checkin") return "เช็คอิน";
+    if ($t["kind"] === "admin")   return "แอดมินปรับคะแนน" . $note;
+    return "แลกรางวัล" . $note;
+}
+
 // Active shops ordered by popularity points of the last SHOP_RANK_DAYS days
 // (ties: more check-ins ever, then oldest shop first). $limit 0 = all.
 function getPopularShops($conn, $limit = 0) {

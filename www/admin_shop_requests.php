@@ -40,8 +40,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $upd->bind_param("i", $applicantId);
                 if (!$upd->execute()) throw new Exception();
 
-                $ins = $conn->prepare("INSERT INTO places (name, location_text, image_url, category, lat, lng, owner_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $ins->bind_param("ssssddi", $shopName, $shopLoc, $shopImg, $shopCategory, $shopLat, $shopLng, $applicantId);
+                $shopProv = $reqRow["province"] ?? "";
+                $shopDist = $reqRow["district"] ?? "";
+                $ins = $conn->prepare("INSERT INTO places (name, location_text, image_url, category, lat, lng, owner_user_id, province, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $ins->bind_param("ssssddiss", $shopName, $shopLoc, $shopImg, $shopCategory, $shopLat, $shopLng, $applicantId, $shopProv, $shopDist);
                 if (!$ins->execute()) throw new Exception();
 
                 $adminId = intval($_SESSION["user_id"]);
@@ -173,6 +175,7 @@ $reviewedRequests = array_values(array_filter($requests, fn($r) => $r["status"] 
               <span><?= e($r["applicant_name"]) ?> · <?= e($r["applicant_email"]) ?></span>
               <?php if ($r["category"]): ?><span><?= e($r["category"]) ?></span><?php endif; ?>
               <?php if (!empty($r["description"])): ?><span><?= e($r["description"]) ?></span><?php endif; ?>
+              <?php if (!empty($r["province"]) || !empty($r["district"])): ?><span><?= !empty($r["district"]) ? "อ." . e($r["district"]) . " " : "" ?><?= !empty($r["province"]) ? "จ." . e($r["province"]) : "" ?></span><?php endif; ?>
               <?php if ($r["location_text"]): ?><span><?= e($r["location_text"]) ?></span><?php endif; ?>
               <?php if ($r["lat"] !== null && $r["lng"] !== null): ?>
                 <span>

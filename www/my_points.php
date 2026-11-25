@@ -126,7 +126,7 @@ $totalBalance = array_sum(array_map(fn($s) => intval($s["balance"]), $shops));
                 <?php foreach ($txnsByShop[$s["id"]] ?? [] as $t): ?>
                   <div class="sp-txn">
                     <span>
-                      <?= $t["kind"] === "checkin" ? "เช็คอิน" : "แลกรางวัล" . ($t["note"] ? ": " . e($t["note"]) : "") ?>
+                      <?= e(shopTxnLabel($t)) ?>
                       <small><?= e(thaiTimestampText(strtotime($t["created_at"]))) ?></small>
                     </span>
                     <b class="<?= intval($t["points"]) >= 0 ? "plus" : "minus" ?>"><?= intval($t["points"]) >= 0 ? "+" : "" ?><?= intval($t["points"]) ?></b>
