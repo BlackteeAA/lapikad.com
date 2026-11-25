@@ -11,6 +11,14 @@ body { font-family:'Kanit',sans-serif; background:#f1f5f9!important; background-
 }
 .ev-hero h1 { font-size:21px;font-weight:700;margin:0 0 4px; }
 .ev-hero p  { font-size:13px;opacity:.9;margin:0;font-weight:300; }
+.ev-hero .ev-school { display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;margin-bottom:10px; }
+.ev-hero .ev-school span { opacity:.9; }
+.ev-hero .ev-school .school-logo-ph { box-shadow:0 0 0 2px rgba(255,255,255,.7); }
+.ev-stats { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px; }
+.ev-stats > div { background:rgba(255,255,255,.16);border-radius:14px;padding:10px 12px; }
+.ev-stats span { display:block;font-size:11.5px;opacity:.85; }
+.ev-stats b { display:block;font-size:20px;font-weight:700;margin-top:2px; }
+.ev-stats b small { font-size:11.5px;font-weight:400;opacity:.85; }
 
 .ev-actions { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px; }
 .ev-action {
@@ -72,6 +80,18 @@ body { font-family:'Kanit',sans-serif; background:#f1f5f9!important; background-
 .adm-btn.danger  { background:#fff1f2;color:#e11d48; }
 .adm-btn:hover   { opacity:.85; }
 .adm-btn.block   { width:100%; }
+.adm-btn.sm      { padding:8px 14px;font-size:12.5px; }
+
+/* Live attendee list (event_admin.php) */
+.live-dot { font-size:11.5px;font-weight:600;color:#16a34a;animation:livePulse 2s ease-in-out infinite; }
+.live-dot.off { color:#94a3b8;animation:none; }
+@keyframes livePulse { 50% { opacity:.4; } }
+.row-item.row-new { animation:rowNew 2.4s ease-out; }
+@keyframes rowNew {
+  0%   { background:#dcfce7;transform:translateY(-6px);opacity:0; }
+  15%  { background:#dcfce7;transform:none;opacity:1; }
+  100% { background:transparent; }
+}
 
 .adm-alert { padding:12px 16px;border-radius:14px;font-size:14px;font-weight:500;margin-bottom:16px; }
 .adm-alert.good { background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0; }
@@ -100,3 +120,26 @@ body { font-family:'Kanit',sans-serif; background:#f1f5f9!important; background-
   border:none;cursor:pointer;background:#fff1f2;color:#e11d48;
 }
 .icon-btn svg { width:14px;height:14px; }
+
+/* Attendance: absent list (event_admin.php) and report (event_attendance.php) */
+.absent-room { border-bottom:1px solid #f1f5f9; }
+.absent-room:last-child { border-bottom:none; }
+.absent-room summary { list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 0;font-size:14px;font-weight:600;color:#0f172a; }
+.absent-room summary::-webkit-details-marker { display:none; }
+.absent-room summary::after { content:'›';font-size:20px;color:#94a3b8;margin-left:8px;transition:transform .2s; }
+.absent-room[open] summary::after { transform:rotate(90deg); }
+.absent-room summary > span:first-child { flex:1; }
+.absent-row { display:flex;align-items:center;gap:10px;padding:7px 0 7px 4px;font-size:13.5px;color:#334155; }
+.absent-row .no { width:26px;text-align:right;color:#94a3b8;font-size:12px;flex-shrink:0; }
+.absent-row small { color:#94a3b8; }
+.rate-bar { height:6px;border-radius:99px;background:#f1f5f9;overflow:hidden;margin-top:5px; }
+.rate-bar > i { display:block;height:100%;border-radius:99px; }
+.rate-good { color:#16a34a; } .rate-bar .rate-good { background:#22c55e; }
+.rate-mid  { color:#d97706; } .rate-bar .rate-mid  { background:#f59e0b; }
+.rate-low  { color:#dc2626; } .rate-bar .rate-low  { background:#ef4444; }
+.rate-pct { font-size:16px;font-weight:700;text-align:right;flex-shrink:0;min-width:52px; }
+.rate-pct small { display:block;font-size:11px;font-weight:500;color:#94a3b8; }
+.att-filter { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px; }
+.att-filter select, .att-filter input { flex:1;min-width:130px;padding:10px 12px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;font-family:inherit;font-size:14px; }
+.missed-list { font-size:12px;color:#64748b;padding:0 0 12px 52px; }
+.missed-list b { color:#dc2626;font-weight:600; }

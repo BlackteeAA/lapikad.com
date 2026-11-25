@@ -355,20 +355,9 @@ if ($scannedCode === $targetCode) {
         </div>
         <span class="rc-quest-pts">+<?= $quest["reward_points"] ?> คะแนน</span>
       </div>
-
-      <div class="rc-reminder">
-        <div class="rc-reminder-text">
-          <strong>อย่าลืม!</strong>
-          <p>นำหลักฐานการได้รับรางวัลนี้ไปแสดงให้พนักงานที่ร้านค้า เพื่อรับของรางวัลหรือสิทธิ์ส่วนลด</p>
-        </div>
-        <div class="rc-reminder-icon">
-          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-        </div>
-      </div>
-
-      <a href="<?= $ownerUserId !== null ? "place.php?id=" . $quest["place_id"] : "rewards.php" ?>" class="rc-btn-primary">
-        <svg viewBox="0 0 24 24"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5z"/></svg>
-        <?= $ownerUserId !== null ? "ดูของรางวัลร้านนี้" : "ดูของรางวัลของฉัน" ?>
+      <a href="place.php?id=<?= intval($quest["place_id"]) ?>" class="rc-btn-primary">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        ทำภารกิจอื่นต่อ
       </a>
       <a href="dashboard.php" class="rc-btn-ghost">กลับหน้าหลัก</a>
 

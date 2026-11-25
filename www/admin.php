@@ -3,7 +3,6 @@ require_once "_admin.php";
 
 $totalPlaces      = $conn->query("SELECT COUNT(*) c FROM places")->fetch_assoc()["c"];
 $totalUsers       = $conn->query("SELECT COUNT(*) c FROM users")->fetch_assoc()["c"];
-$totalRewards     = $conn->query("SELECT COUNT(*) c FROM rewards")->fetch_assoc()["c"];
 $totalPointsGiven = $conn->query("SELECT COALESCE(SUM(points),0) c FROM point_logs WHERE points > 0")->fetch_assoc()["c"];
 $pendingShopReqs  = $conn->query("SELECT COUNT(*) c FROM shop_requests WHERE status='pending'")->fetch_assoc()["c"];
 
@@ -39,7 +38,7 @@ $adminName = $_SESSION["name"] ?? "Admin";
     .adm-stat-card {
       background:#fff;border-radius:20px;box-shadow:0 8px 24px rgba(15,23,42,.1);
       padding:18px 8px;margin:-30px 4px 20px;position:relative;z-index:2;
-      display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+      display:grid;grid-template-columns:repeat(3,1fr);gap:4px;
     }
     .adm-stat { text-align:center; }
     .adm-stat .icon-circle {
@@ -103,14 +102,6 @@ $adminName = $_SESSION["name"] ?? "Admin";
         <div class="label">คะแนนที่แจก</div>
         <div class="unit">คะแนน</div>
       </div>
-      <div class="adm-stat">
-        <div class="icon-circle" style="background:#fee2e2">
-          <svg viewBox="0 0 24 24" style="fill:#dc2626"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5zm9 14H5V9h14v10z"/></svg>
-        </div>
-        <div class="num"><?= number_format($totalRewards) ?></div>
-        <div class="label">รางวัลทั้งหมด</div>
-        <div class="unit">รายการ</div>
-      </div>
     </div>
 
     <!-- Quick menu -->
@@ -133,12 +124,6 @@ $adminName = $_SESSION["name"] ?? "Admin";
           <svg viewBox="0 0 24 24" style="fill:#2563eb"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3" rx="0.5"/><rect x="18" y="14" width="3" height="3" rx="0.5"/><rect x="14" y="18" width="3" height="3" rx="0.5"/><rect x="18" y="18" width="3" height="3" rx="0.5"/></svg>
         </div>
         <span>จัดการ QR Code</span>
-      </a>
-      <a class="adm-quick-tile" href="admin_rewards.php">
-        <div class="icon-circle" style="background:#fee2e2">
-          <svg viewBox="0 0 24 24" style="fill:#dc2626"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5zm9 14H5V9h14v10z"/></svg>
-        </div>
-        <span>จัดการรางวัล</span>
       </a>
       <a class="adm-quick-tile" href="admin_users.php">
         <div class="icon-circle" style="background:#ede9fe">
@@ -166,6 +151,12 @@ $adminName = $_SESSION["name"] ?? "Admin";
           <svg viewBox="0 0 24 24" style="fill:#4f46e5"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z"/></svg>
         </div>
         <span>กิจกรรมโรงเรียน</span>
+      </a>
+      <a class="adm-quick-tile" href="admin_schools.php">
+        <div class="icon-circle" style="background:#fce7f3">
+          <svg viewBox="0 0 24 24" style="fill:#db2777"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+        </div>
+        <span>โรงเรียน / สภานักเรียน</span>
       </a>
       <a class="adm-quick-tile" href="admin_report_retention.php">
         <div class="icon-circle" style="background:#dcfce7">

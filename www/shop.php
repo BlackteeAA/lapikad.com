@@ -1,20 +1,32 @@
 <?php
 require_once "_shop.php";
+require_once "_shop_points.php";
 
 $placeId = intval($shopPlace["id"]);
 
-$totalQuests  = $conn->query("SELECT COUNT(*) c FROM quests WHERE place_id=$placeId")->fetch_assoc()["c"];
-$totalRewards = $conn->query("SELECT COUNT(*) c FROM rewards WHERE place_id=$placeId")->fetch_assoc()["c"];
-$pointsGiven  = $conn->query("
-    SELECT COALESCE(SUM(q.reward_points),0) c
-    FROM user_quests uq JOIN quests q ON q.id = uq.quest_id
-    WHERE q.place_id=$placeId
-")->fetch_assoc()["c"];
-$participants = $conn->query("
-    SELECT COUNT(DISTINCT uq.user_id) c
-    FROM user_quests uq JOIN quests q ON q.id = uq.quest_id
-    WHERE q.place_id=$placeId
-")->fetch_assoc()["c"];
+// Check-in points: popularity score and rank (last SHOP_RANK_DAYS days),
+// customers today, and the latest check-ins / redemptions.
+$rank = getShopRank($conn, $placeId);
+$todayCount = 0;
+$recent = [];
+try {
+    $today = shopToday();
+    $stmt = $conn->prepare("SELECT COUNT(*) c FROM shop_point_txns WHERE place_id=? AND kind='checkin' AND checkin_date=?");
+    $stmt->bind_param("is", $placeId, $today);
+    $stmt->execute();
+    $todayCount = intval($stmt->get_result()->fetch_assoc()["c"]);
+
+    $stmt = $conn->prepare("
+        SELECT t.kind, t.points, t.note, t.created_at, u.name, u.avatar_url
+        FROM shop_point_txns t JOIN users u ON u.id = t.user_id
+        WHERE t.place_id=? ORDER BY t.id DESC LIMIT 15
+    ");
+    $stmt->bind_param("i", $placeId);
+    $stmt->execute();
+    $recent = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+} catch (mysqli_sql_exception $e) {
+    // sql/add_shop_checkins.sql not run yet
+}
 
 $shopName = $_SESSION["name"] ?? "ร้านค้า";
 ?>
@@ -46,7 +58,7 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
     .adm-stat-card {
       background:#fff;border-radius:20px;box-shadow:0 8px 24px rgba(15,23,42,.1);
       padding:18px 8px;margin:-30px 4px 20px;position:relative;z-index:2;
-      display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+      display:grid;grid-template-columns:repeat(3,1fr);gap:4px;
     }
     .adm-stat { text-align:center; }
     .adm-stat .icon-circle {
@@ -79,69 +91,61 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
 
     <div class="adm-hero">
       <h1>สวัสดีครับ <?= e($shopPlace["name"]) ?>!</h1>
-      <p>จัดการร้านค้าและดูสถิติได้ที่นี่</p>
+      <p>ลูกค้าสแกน QR ที่โต๊ะ ได้ <?= SHOP_CHECKIN_CUSTOMER_POINTS ?> คะแนน ร้านได้ <?= SHOP_CHECKIN_SHOP_POINTS ?> คะแนนความดัง · ยิ่งดังยิ่งขึ้นเป็นร้านแรกๆ</p>
     </div>
 
     <div class="adm-stat-card">
       <div class="adm-stat">
-        <div class="icon-circle" style="background:#dbeafe">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="#2563eb"/></svg>
+        <div class="icon-circle" style="background:#fef3c7">
+          <svg viewBox="0 0 24 24" style="fill:#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
         </div>
-        <div class="num"><?= number_format($totalQuests) ?></div>
-        <div class="label">ภารกิจทั้งหมด</div>
-        <div class="unit">ภารกิจ</div>
+        <div class="num"><?= $rank["rank"] ? "#" . $rank["rank"] : "–" ?></div>
+        <div class="label">อันดับร้านดัง</div>
+        <div class="unit">จาก <?= number_format($rank["total"]) ?> ร้าน</div>
       </div>
       <div class="adm-stat">
         <div class="icon-circle" style="background:#fee2e2">
-          <svg viewBox="0 0 24 24" style="fill:#dc2626"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5zm9 14H5V9h14v10z"/></svg>
+          <svg viewBox="0 0 24 24" style="fill:#ef4444"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
         </div>
-        <div class="num"><?= number_format($totalRewards) ?></div>
-        <div class="label">ของรางวัลทั้งหมด</div>
-        <div class="unit">รายการ</div>
-      </div>
-      <div class="adm-stat">
-        <div class="icon-circle" style="background:#fef9c3">
-          <svg viewBox="0 0 24 24" style="fill:#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
-        </div>
-        <div class="num"><?= number_format($pointsGiven) ?></div>
-        <div class="label">คะแนนที่แจกไป</div>
-        <div class="unit">คะแนน</div>
+        <div class="num"><?= number_format($rank["score"]) ?></div>
+        <div class="label">คะแนนความดัง</div>
+        <div class="unit"><?= SHOP_RANK_DAYS ?> วันล่าสุด</div>
       </div>
       <div class="adm-stat">
         <div class="icon-circle" style="background:#ede9fe">
           <svg viewBox="0 0 24 24" style="fill:#7c3aed"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         </div>
-        <div class="num"><?= number_format($participants) ?></div>
-        <div class="label">ผู้ร่วมภารกิจ</div>
+        <div class="num"><?= number_format($todayCount) ?></div>
+        <div class="label">เช็คอินวันนี้</div>
         <div class="unit">คน</div>
       </div>
     </div>
 
     <div class="adm-quick-title">เมนูจัดการร้านค้า</div>
     <div class="adm-quick-grid">
+      <a class="adm-quick-tile" href="shop_qr.php">
+        <div class="icon-circle" style="background:#e0e7ff">
+          <svg viewBox="0 0 24 24" style="fill:#4f46e5"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm11-2h2v2h-2v-2zm-3 0h2v3h-2v-3zm3 3h2v2h-2v-2zm2 2h3v3h-3v-3zm-5 1h3v2h-3v-2zm7-6h1v4h-1v-4z"/></svg>
+        </div>
+        <span>QR เช็คอิน<br>(พิมพ์ติดโต๊ะ)</span>
+      </a>
+      <a class="adm-quick-tile" href="shop_deduct_scan.php">
+        <div class="icon-circle" style="background:#fee2e2">
+          <svg viewBox="0 0 24 24" style="fill:#ef4444"><path d="M4 4h4V2H2v6h2V4zm16 0v4h2V2h-6v2h4zM4 20v-4H2v6h6v-2H4zm16 0h-4v2h6v-6h-2v4zM2 11h20v2H2v-2z"/></svg>
+        </div>
+        <span>สแกนหักคะแนน<br>(แลกรางวัล)</span>
+      </a>
+      <a class="adm-quick-tile" href="shop_rewards.php">
+        <div class="icon-circle" style="background:#fef3c7">
+          <svg viewBox="0 0 24 24" style="fill:#d97706"><path d="M20 6h-2.18c.11-.31.18-.65.18-1a2.996 2.996 0 0 0-5.5-1.65l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 12 7.4l3.38 4.6L17 10.83 14.92 8H20v6z"/></svg>
+        </div>
+        <span>รางวัลของร้าน</span>
+      </a>
       <a class="adm-quick-tile" href="shop_quests.php">
         <div class="icon-circle" style="background:#dbeafe">
           <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="#2563eb"/></svg>
         </div>
         <span>จัดการภารกิจ</span>
-      </a>
-      <a class="adm-quick-tile" href="shop_rewards.php">
-        <div class="icon-circle" style="background:#fee2e2">
-          <svg viewBox="0 0 24 24" style="fill:#dc2626"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zm-10-2h4v2h-4V5zm9 14H5V9h14v10z"/></svg>
-        </div>
-        <span>จัดการของรางวัล</span>
-      </a>
-      <a class="adm-quick-tile" href="shop_scan_redeem.php">
-        <div class="icon-circle" style="background:#dcfce7">
-          <svg viewBox="0 0 24 24" style="fill:#16a34a"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM9 9h6v6H9V9z"/></svg>
-        </div>
-        <span>สแกนแลกรางวัล</span>
-      </a>
-      <a class="adm-quick-tile" href="shop_redemptions.php">
-        <div class="icon-circle" style="background:#ede9fe">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
-        </div>
-        <span>ประวัติการแลกรางวัล</span>
       </a>
       <a class="adm-quick-tile" href="admin_report_retention.php">
         <div class="icon-circle" style="background:#dcfce7">
@@ -149,6 +153,22 @@ $shopName = $_SESSION["name"] ?? "ร้านค้า";
         </div>
         <span>รายงานลูกค้ากลับมาซ้ำ</span>
       </a>
+    </div>
+
+    <div class="adm-quick-title" style="margin-top:20px">ความเคลื่อนไหวล่าสุด</div>
+    <div style="background:#fff;border-radius:18px;padding:4px 16px;box-shadow:0 2px 8px rgba(15,23,42,.05);margin-bottom:24px">
+      <?php if (!$recent): ?>
+        <div style="text-align:center;color:#94a3b8;font-size:13.5px;padding:18px 0">ยังไม่มีลูกค้าเช็คอิน พิมพ์ QR ไปติดที่โต๊ะได้เลย</div>
+      <?php endif; ?>
+      <?php foreach ($recent as $t): $plus = intval($t["points"]) >= 0; ?>
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f1f5f9">
+          <div style="flex:1;min-width:0">
+            <strong style="display:block;font-size:14px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= e($t["name"]) ?></strong>
+            <span style="font-size:12px;color:#94a3b8"><?= $t["kind"] === "checkin" ? "เช็คอิน" : "แลกรางวัล" . ($t["note"] ? ": " . e($t["note"]) : "") ?> · <?= e(thaiTimestampText(strtotime($t["created_at"]))) ?></span>
+          </div>
+          <b style="color:<?= $plus ? "#16a34a" : "#dc2626" ?>"><?= $plus ? "+" : "" ?><?= intval($t["points"]) ?></b>
+        </div>
+      <?php endforeach; ?>
     </div>
 
   </main>

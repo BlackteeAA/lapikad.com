@@ -10,10 +10,28 @@ $isLoggedIn = isset($_SESSION["user_id"]);
 $userName = $_SESSION["name"] ?? "ผู้ใช้";
 $userRole = $_SESSION["role"] ?? "";
 
-$isOrganizer = false;
+// School role ("สภานักเรียน"/"ครู") of the logged-in user, for the side menu.
+$navIsCouncil = false;
+$navSchool = null;
 if ($isLoggedIn && isset($conn)) {
-    $orgR = $conn->query("SELECT is_organizer FROM users WHERE id=" . intval($_SESSION["user_id"]));
-    if ($orgR) { $orgRow = $orgR->fetch_assoc(); $isOrganizer = !empty($orgRow["is_organizer"]); }
+    require_once __DIR__ . "/../_school.php";
+    $navSchool = getUserSchool($conn, $_SESSION["user_id"]);
+    $navIsCouncil = isSchoolCouncil($conn, $_SESSION["user_id"]);
+}
+
+// Students don't see the school menu: they join school activities through the
+// council's check-in links / QR (event_link.php). Admins, council/teachers and
+// event scan helpers still get it.
+$navShowSchool = false;
+if ($isLoggedIn && isset($conn)) {
+    $navShowSchool = $userRole === "admin" || $navIsCouncil;
+    if (!$navShowSchool) {
+        $nsStmt = $conn->prepare("SELECT 1 FROM event_staff WHERE user_id=? LIMIT 1");
+        $nsUid = intval($_SESSION["user_id"]);
+        $nsStmt->bind_param("i", $nsUid);
+        $nsStmt->execute();
+        $navShowSchool = (bool)$nsStmt->get_result()->fetch_assoc();
+    }
 }
 
 // Global "น้องพิกัด" AI chat entry point — hidden on the chat page itself.
@@ -47,6 +65,89 @@ function notifTimeAgo($dt) {
     return intval($d/86400) . " วันที่แล้ว";
 }
 ?>
+
+<link rel="stylesheet" href="css/soft.css?v=<?= @filemtime(__DIR__ . "/../css/soft.css") ?: 1 ?>">
+
+<style>
+  /* Side menu fix (inline เพื่อไม่ติดแคช modern.css) */
+  .menu-backdrop { z-index: 1090 !important; }
+  .side-menu {
+    z-index: 1100 !important;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom)) !important;
+    background: #ffffff !important;
+  }
+  /* ซ่อน bottom nav / ปุ่ม AI ตอนเปิดเมนู และล็อกหน้าหลักไม่ให้เลื่อน */
+  .menu-toggle:checked ~ .bottom-nav,
+  .menu-toggle:checked ~ .ai-chat-fab { display: none !important; }
+  html:has(#menu-toggle:checked),
+  body:has(#menu-toggle:checked) { overflow: hidden !important; }
+
+  /* Bottom nav แบบลอย (แคปซูล) */
+  .bottom-nav {
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 28px) !important;
+    max-width: 430px !important;
+    height: 64px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, .96) !important;
+    border: 1px solid rgba(15, 23, 42, .06);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, .18), 0 2px 6px rgba(15, 23, 42, .06) !important;
+    overflow: visible !important;
+  }
+  .bottom-nav a {
+    height: 46px !important;
+    border-radius: 999px !important;
+  }
+  /* ไอคอนอย่างเดียว ซ่อนข้อความ (ยังอ่านได้ด้วย screen reader) */
+  .bottom-nav a > span:not(.nav-scan-btn) {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .bottom-nav a:not(.nav-scan) { flex: 0 0 46px !important; width: 46px; margin: 0 auto; }
+  .bottom-nav a.active:not(.nav-scan) { background: #eff6ff !important; color: #2563eb !important; }
+  .app { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)) !important; }
+  .ai-chat-fab { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+
+  /* ปุ่มกล้องตรงกลาง (ยื่นขึ้นเหนือแถบ) */
+  .bottom-nav a.nav-scan,
+  .bottom-nav a.nav-scan.active {
+    position: relative;
+    flex: 0 0 64px !important;
+    margin: 0 auto;
+    background: transparent !important;
+  }
+  .nav-scan-btn {
+    position: absolute;
+    top: 50%;
+    margin-top: -48px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: 5px solid #fff;
+    transition: transform .15s ease;
+  }
+  .bottom-nav .nav-scan-btn svg { width: 26px; height: 26px; fill: #fff; }
+  .nav-scan:active .nav-scan-btn {
+    transform: translateX(-50%) scale(.92);
+  }
+</style>
 
 <input type="checkbox" id="menu-toggle" class="menu-toggle">
 <input type="checkbox" id="notif-toggle" class="notif-toggle">
@@ -122,6 +223,12 @@ function notifTimeAgo($dt) {
     <strong><?= e($userName) ?></strong>
     <?php if ($isLoggedIn): ?>
       <span><?= e($userRole) ?></span>
+      <?php if (!empty($navSchool["school_id"])): ?>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin-top:6px">
+          <?= schoolLogoHtml(["name" => $navSchool["school_name"], "logo_url" => $navSchool["school_logo"]], 22) ?>
+          <?= e($navSchool["school_name"]) ?> · <?= e(schoolRoleLabel($navSchool["school_role"])) ?>
+        </span>
+      <?php endif; ?>
     <?php else: ?>
       <span>ยังไม่ได้เข้าสู่ระบบ</span>
     <?php endif; ?>
@@ -131,17 +238,30 @@ function notifTimeAgo($dt) {
       <a href="dashboard.php">หน้าหลัก</a>
       <a href="places.php">สถานที่และภารกิจ</a>
       <a href="ai_quests.php">ภารกิจแนะนำ</a>
-      <a href="events.php">กิจกรรมโรงเรียน</a>
-      <a href="rewards.php">รางวัล</a>
+      <?php if ($navShowSchool): ?>
+        <a href="events.php">กิจกรรมโรงเรียน</a>
+      <?php endif; ?>
+      <a href="my_points.php">แต้มร้านค้าของฉัน / QR ของฉัน</a>
       <a href="profile.php">โปรไฟล์</a>
       <?php if ($userRole === "admin"): ?>
         <a href="admin.php">แอดมิน</a>
+        <a href="admin_users.php">จัดการผู้ใช้</a>
+        <a href="admin_schools.php">โรงเรียนทั้งหมด (สมาชิก · รางวัล)</a>
+        <a href="event_manage.php">จัดการกิจกรรม</a>
+        <?php if (!empty($navSchool["school_id"])): ?>
+          <a href="school_members.php?id=<?= intval($navSchool["school_id"]) ?>">สมาชิก <?= e($navSchool["school_name"]) ?></a>
+          <a href="council_rewards.php?school_id=<?= intval($navSchool["school_id"]) ?>">รางวัล <?= e($navSchool["school_name"]) ?></a>
+        <?php endif; ?>
       <?php endif; ?>
       <?php if ($userRole === "shop"): ?>
         <a href="shop.php">ร้านค้าของฉัน</a>
+        <a href="shop_deduct_scan.php">สแกนหักคะแนนลูกค้า</a>
+        <a href="shop_qr.php">QR เช็คอินของร้าน</a>
+        <a href="shop_rewards.php">รางวัลของร้าน</a>
       <?php endif; ?>
-      <?php if ($userRole !== "admin" && $isOrganizer): ?>
-        <a href="council_rewards.php">รางวัลโรงเรียน (สภา)</a>
+      <?php if ($userRole !== "admin" && $navIsCouncil): ?>
+        <a href="council_rewards.php">รางวัลโรงเรียน (<?= $navSchool["school_role"] === "teacher" ? "ครู" : "สภา" ?>)</a>
+        <a href="school_members.php?id=<?= intval($navSchool["school_id"]) ?>">สมาชิกโรงเรียน</a>
       <?php endif; ?>
       <a href="logout.php" class="danger-link">ออกจากระบบ</a>
     <?php else: ?>
@@ -162,13 +282,15 @@ function notifTimeAgo($dt) {
     <svg viewBox="0 0 24 24"><path d="M9 3h12v12H9V3zm2 2v8h8V5h-8zM3 9h4v12H3V9zm2 2v8h0v-8zm4 6h12v4H9v-4zm2 2h8v0h-8z"/></svg>
     <span>ภารกิจ</span>
   </a>
+  <a class="nav-scan <?= activeTab(["scan_any.php"]) ?>" href="<?= $isLoggedIn ? 'scan_any.php' : 'login.php' ?>" aria-label="สแกน QR">
+    <span class="nav-scan-btn">
+      <svg viewBox="0 0 24 24"><path d="M9 3 7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.17L15 3H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+    </span>
+    <span>สแกน</span>
+  </a>
   <a class="<?= activeTab(["community.php"]) ?>" href="community.php">
     <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
     <span>ชุมชน</span>
-  </a>
-  <a class="<?= activeTab(["rewards.php"]) ?>" href="rewards.php">
-    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-    <span>รางวัล</span>
   </a>
   <a class="<?= activeTab(["profile.php","login.php","register.php"]) ?>" href="profile.php">
     <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5C21 16.5 17 14 12 14z"/></svg>

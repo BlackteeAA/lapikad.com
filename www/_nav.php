@@ -4,7 +4,6 @@
     <?php if (isset($_SESSION["user_id"])): ?>
       <a href="dashboard.php">หน้าหลัก</a>
       <a href="places.php">สถานที่</a>
-      <a href="rewards.php">รางวัล</a>
       <?php if (($_SESSION["role"] ?? "") === "admin"): ?>
         <a href="admin.php">แอดมิน</a>
       <?php endif; ?>

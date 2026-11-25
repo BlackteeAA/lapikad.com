@@ -1,88 +1,74 @@
 <?php
+// Shop owner defines their own rewards (rewards.place_id): name, points needed
+// and an optional photo. Customers see them on the shop's page (place.php), on
+// check-in and in my_points.php; the shop deducts points when handing a reward
+// over (shop_deduct.php).
 require_once "_shop.php";
+require_once "_shop_points.php";
 
 $placeId = intval($shopPlace["id"]);
-
 $msg = "";
 $msgType = "good";
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+function getOwnReward($conn, $id, $placeId) {
+    $stmt = $conn->prepare("SELECT * FROM rewards WHERE id=? AND place_id=?");
+    $stmt->bind_param("ii", $id, $placeId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
+if (uploadPostTooLarge()) {
+    // PHP dropped the whole request (file over post_max_size), so there's no CSRF token to check.
+    $msg = uploadTooLargeMessage(); $msgType = "bad";
+} elseif ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!csrf_verify()) redirect("shop_rewards.php");
     $action = $_POST["action"] ?? "";
+    $name   = mb_substr(trim($_POST["name"] ?? ""), 0, 150, "UTF-8");
+    $desc   = mb_substr(trim($_POST["description"] ?? ""), 0, 500, "UTF-8");
+    $cost   = intval($_POST["cost_points"] ?? 0);
 
-    if ($action === "add_reward") {
-        $name  = trim($_POST["reward_name"] ?? "");
-        $desc  = trim($_POST["reward_desc"] ?? "");
-        $cost  = intval($_POST["cost_points"] ?? 0);
-        $stock = intval($_POST["stock"] ?? 1);
-        $img   = "";
-
-        if (isset($_FILES["reward_image"]) && $_FILES["reward_image"]["error"] === UPLOAD_ERR_OK) {
-            $ext     = strtolower(pathinfo($_FILES["reward_image"]["name"], PATHINFO_EXTENSION));
-            $allowed = ["jpg","jpeg","png","webp","gif"];
-            if (in_array($ext, $allowed) && $_FILES["reward_image"]["size"] < 5 * 1024 * 1024) {
-                $fname = "reward_" . time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
-                $dest  = __DIR__ . "/assets/images/rewards/" . $fname;
-                if (!is_dir(__DIR__ . "/assets/images/rewards/")) mkdir(__DIR__ . "/assets/images/rewards/", 0755, true);
-                if (move_uploaded_file($_FILES["reward_image"]["tmp_name"], $dest)) {
-                    $img = "assets/images/rewards/" . $fname;
-                }
-            }
-        }
-
-        if ($name !== "" && $cost > 0) {
-            $stmt = $conn->prepare("INSERT INTO rewards (name,description,cost_points,stock,image_url,place_id) VALUES (?,?,?,?,?,?)");
-            $stmt->bind_param("ssiisi", $name, $desc, $cost, $stock, $img, $placeId);
-            $stmt->execute();
-            $msg = "เพิ่มรางวัลสำเร็จ";
-        } else { $msg = "กรุณากรอกชื่อและคะแนน"; $msgType = "bad"; }
-    }
-
-    if ($action === "edit_reward") {
-        $rid   = intval($_POST["reward_id"] ?? 0);
-        $name  = trim($_POST["reward_name"] ?? "");
-        $desc  = trim($_POST["reward_desc"] ?? "");
-        $cost  = intval($_POST["cost_points"] ?? 0);
-        $stock = intval($_POST["stock"] ?? 1);
-        $img   = null;
-
-        if (isset($_FILES["reward_image"]) && $_FILES["reward_image"]["error"] === UPLOAD_ERR_OK) {
-            $ext     = strtolower(pathinfo($_FILES["reward_image"]["name"], PATHINFO_EXTENSION));
-            $allowed = ["jpg","jpeg","png","webp","gif"];
-            if (in_array($ext, $allowed) && $_FILES["reward_image"]["size"] < 5 * 1024 * 1024) {
-                $fname = "reward_" . time() . "_" . bin2hex(random_bytes(4)) . "." . $ext;
-                $dest  = __DIR__ . "/assets/images/rewards/" . $fname;
-                if (!is_dir(__DIR__ . "/assets/images/rewards/")) mkdir(__DIR__ . "/assets/images/rewards/", 0755, true);
-                if (move_uploaded_file($_FILES["reward_image"]["tmp_name"], $dest)) {
-                    $img = "assets/images/rewards/" . $fname;
-                }
-            }
-        }
-
-        if ($name !== "" && $cost > 0) {
-            if ($img !== null) {
-                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, stock=?, image_url=? WHERE id=? AND place_id=?");
-                $stmt->bind_param("ssiisii", $name, $desc, $cost, $stock, $img, $rid, $placeId);
+    if ($action === "add" || $action === "edit") {
+        $own = $action === "edit" ? getOwnReward($conn, intval($_POST["id"] ?? 0), $placeId) : null;
+        if ($action === "edit" && !$own) {
+            $msg = "ไม่พบรางวัลนี้"; $msgType = "bad";
+        } elseif ($name === "" || $cost <= 0) {
+            $msg = "กรุณากรอกชื่อรางวัลและคะแนนที่ใช้แลก (มากกว่า 0)"; $msgType = "bad";
+        } else {
+            [$imgErr, $newImg] = saveShopRewardImage($_FILES["image"] ?? null, $placeId);
+            if ($imgErr) {
+                $msg = $imgErr; $msgType = "bad";
+            } elseif ($action === "add") {
+                $img = $newImg ?? "";
+                $stmt = $conn->prepare("INSERT INTO rewards (name, description, cost_points, stock, image_url, place_id, school_id) VALUES (?, ?, ?, 0, ?, ?, NULL)");
+                $stmt->bind_param("ssisi", $name, $desc, $cost, $img, $placeId);
+                $stmt->execute();
+                $msg = "เพิ่มรางวัลแล้ว";
             } else {
-                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, stock=? WHERE id=? AND place_id=?");
-                $stmt->bind_param("ssiiii", $name, $desc, $cost, $stock, $rid, $placeId);
+                $oldImg = $own["image_url"] ?? "";
+                $img = $oldImg;
+                if ($newImg) $img = $newImg;
+                elseif (!empty($_POST["remove_image"])) $img = "";
+                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, image_url=? WHERE id=? AND place_id=?");
+                $stmt->bind_param("ssisii", $name, $desc, $cost, $img, $own["id"], $placeId);
+                $stmt->execute();
+                if ($img !== $oldImg) deleteShopRewardImage($oldImg);
+                $msg = "บันทึกแล้ว";
             }
-            $stmt->execute();
-            $msg = "บันทึกการแก้ไขสำเร็จ";
-        } else { $msg = "กรุณากรอกชื่อและคะแนน"; $msgType = "bad"; }
+        }
     }
-
-    if ($action === "delete_reward") {
-        $rid = intval($_POST["reward_id"] ?? 0);
-        $stmt = $conn->prepare("DELETE FROM rewards WHERE id=? AND place_id=?");
-        $stmt->bind_param("ii", $rid, $placeId);
-        $stmt->execute();
-        $msg = "ลบรางวัลสำเร็จ";
+    if ($action === "delete") {
+        $own = getOwnReward($conn, intval($_POST["id"] ?? 0), $placeId);
+        if ($own) {
+            $stmt = $conn->prepare("DELETE FROM rewards WHERE id=? AND place_id=?");
+            $stmt->bind_param("ii", $own["id"], $placeId);
+            $stmt->execute();
+            deleteShopRewardImage($own["image_url"] ?? "");
+            $msg = "ลบรางวัลแล้ว";
+        }
     }
 }
 
-$rewards = $conn->query("SELECT * FROM rewards WHERE place_id=$placeId ORDER BY id DESC")->fetch_all(MYSQLI_ASSOC);
-$autoOpen = $_GET["open"] ?? "";
+$rewards = getShopRewards($conn, $placeId);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -91,168 +77,110 @@ $autoOpen = $_GET["open"] ?? "";
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <link rel="apple-touch-icon" href="assets/images/favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>จัดการของรางวัล | ล่าพิกัด.com</title>
+  <title>รางวัลของร้าน | ล่าพิกัด.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/modern.css">
-  <style>
-    body { font-family:'Kanit',sans-serif; background:#f1f5f9!important; background-image:none!important; }
-
-    .back-btn { display:inline-flex;align-items:center;gap:6px;color:#2563eb;font-size:14px;font-weight:500;text-decoration:none;margin-bottom:14px; }
-    .back-btn svg { width:18px;height:18px;fill:currentColor; }
-
-    .pg-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px; }
-    .pg-head h1 { font-size:20px;font-weight:700;color:#0f172a;margin:0; }
-
-    .adm-btn {
-      display:inline-flex;align-items:center;justify-content:center;gap:6px;
-      padding:11px 18px;border:none;border-radius:999px;
-      font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:opacity .2s;flex-shrink:0;
-    }
-    .adm-btn.primary { background:#2563eb;color:#fff; }
-    .adm-btn:hover   { opacity:.85; }
-
-    .adm-alert { padding:12px 16px;border-radius:14px;font-size:14px;font-weight:500;margin-bottom:16px; }
-    .adm-alert.good { background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0; }
-    .adm-alert.bad  { background:#fff1f2;color:#e11d48;border:1px solid #fecdd3; }
-
-    .pg-card { background:#fff;border-radius:20px;padding:8px 18px;box-shadow:0 2px 10px rgba(15,23,42,.06); }
-
-    .search-box { display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:10px 14px;margin-bottom:14px;box-shadow:0 2px 10px rgba(15,23,42,.06); }
-    .search-box svg { width:16px;height:16px;color:#94a3b8;flex-shrink:0; }
-    .search-box input { border:none;background:none;flex:1;font-family:inherit;font-size:13px;outline:none; }
-
-    .row-item { display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #f1f5f9; }
-    .row-item:last-child { border-bottom:none; }
-    .row-item img, .row-item .ph { width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;background:#e2e8f0; }
-    .row-info { flex:1;min-width:0; }
-    .row-info strong { display:block;font-size:14px;font-weight:600;color:#0f172a; }
-    .row-info span   { font-size:11.5px;color:#94a3b8; }
-
-    .icon-btn {
-      width:28px;height:28px;border-radius:8px;flex-shrink:0;
-      display:flex;align-items:center;justify-content:center;
-      border:none;cursor:pointer;background:#fff1f2;color:#e11d48;
-    }
-    .icon-btn svg { width:14px;height:14px; }
-    .icon-btn.edit { background:#eff6ff;color:#2563eb; }
-
-    .adm-form { display:grid;gap:10px;margin-top:14px; }
-    .adm-row  { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
-  </style>
+  <link rel="stylesheet" href="css/shop_points.css?v=<?= @filemtime(__DIR__ . '/css/shop_points.css') ?>">
 </head>
 <body>
-  <main class="app" style="max-width:100%;background:#f1f5f9">
+  <main class="app" style="max-width:100%">
     <?php include "includes/topbar.php"; ?>
 
-    <a href="shop.php" class="back-btn">
-      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-      กลับ
-    </a>
+    <div class="sp-wrap">
+      <a href="shop.php" style="display:inline-block;color:#2563eb;text-decoration:none;margin-bottom:12px">‹ กลับ</a>
+      <h1 style="font-size:21px;margin:0 0 4px;color:#0f172a">รางวัลของร้าน</h1>
+      <p style="margin:0 0 14px;color:#64748b;font-size:13.5px">ลูกค้าได้ <?= SHOP_CHECKIN_CUSTOMER_POINTS ?> คะแนนต่อการเช็คอิน 1 ครั้ง (วันละครั้ง) ตั้งรางวัลให้เหมาะ เช่น 100 คะแนน = มากินประมาณ 10 ครั้ง</p>
 
-    <div class="pg-head">
-      <h1>จัดการของรางวัล</h1>
-      <button type="button" class="adm-btn primary" onclick="revealAndScroll('add-reward-form')">+ เพิ่มรางวัล</button>
-    </div>
+      <?php if ($msg): ?><div class="sp-alert <?= $msgType ?>"><?= e($msg) ?></div><?php endif; ?>
 
-    <?php if ($msg): ?>
-      <div class="adm-alert <?= $msgType ?>"><?= e($msg) ?></div>
-    <?php endif; ?>
+      <section class="sp-card">
+        <form method="post" class="sp-form" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+          <input type="hidden" name="action" value="add">
+          <label class="sp-upload">
+            <img alt="" hidden>
+            <span class="sp-upload-ph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+              เพิ่มรูปรางวัล (ไม่ใส่ก็ได้)
+            </span>
+            <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" onchange="previewImg(this)">
+          </label>
+          <input name="name" maxlength="150" placeholder="ชื่อรางวัล เช่น ก๋วยเตี๋ยวฟรี 1 ชาม" required>
+          <input name="description" maxlength="500" placeholder="รายละเอียด (ไม่ใส่ก็ได้) เช่น ไม่รวมพิเศษ">
+          <input name="cost_points" type="number" min="1" placeholder="คะแนนที่ใช้แลก เช่น 100" required>
+          <button class="sp-btn" type="submit" style="margin:0">+ เพิ่มรางวัล</button>
+        </form>
+      </section>
 
-    <div id="add-reward-form" class="pg-card" style="display:none;margin-bottom:14px">
-      <h2 style="font-size:15px;font-weight:700;color:#0f172a;margin:0">เพิ่มรางวัลใหม่</h2>
-      <p style="font-size:12.5px;color:#94a3b8;margin:2px 0 0">รางวัลนี้แลกได้เฉพาะผู้ที่เคยทำภารกิจร้านนี้เท่านั้น</p>
-      <form method="post" enctype="multipart/form-data" class="adm-form">
-        <input type="hidden" name="action" value="add_reward">
-        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-        <input name="reward_name" placeholder="ชื่อรางวัล" required>
-        <input name="reward_desc" placeholder="คำอธิบาย">
-        <label style="font-size:13px;color:#374151;margin-bottom:4px">รูปภาพรางวัล</label>
-        <input type="file" name="reward_image" accept="image/*" style="background:#f8fafc;border:1.5px dashed #bfdbfe;padding:10px">
-        <div class="adm-row">
-          <input name="cost_points" type="number" placeholder="คะแนนที่ใช้แลก" required>
-          <input name="stock" type="number" placeholder="จำนวนชิ้น" value="10">
-        </div>
-        <button class="adm-btn primary" type="submit">เพิ่มรางวัล</button>
-      </form>
-    </div>
-
-    <div class="search-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="reward-search" placeholder="ค้นหาชื่อรางวัล" oninput="filterRewards(this.value)">
-    </div>
-
-    <div class="pg-card" id="rewards-list">
-      <?php foreach ($rewards as $rw): ?>
-        <div class="row-item" data-search="<?= e(mb_strtolower($rw["name"], "UTF-8")) ?>">
-          <?php if ($rw["image_url"]): ?>
-            <img src="<?= e($rw["image_url"]) ?>" alt="">
-          <?php else: ?>
-            <div class="ph"></div>
-          <?php endif; ?>
-          <div class="row-info">
-            <strong><?= e($rw["name"]) ?></strong>
-            <span><?= number_format($rw["cost_points"]) ?> คะแนน · เหลือ <?= $rw["stock"] ?> ชิ้น</span>
-          </div>
-          <button type="button" class="icon-btn edit" title="แก้ไข" onclick="revealAndScroll('edit-form-<?= $rw["id"] ?>')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
-          </button>
-          <form method="post">
-            <input type="hidden" name="action" value="delete_reward">
-            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-            <input type="hidden" name="reward_id" value="<?= $rw["id"] ?>">
-            <button type="submit" class="icon-btn" title="ลบ" onclick="return confirm('ลบรางวัลนี้?')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7h12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M7 7l1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13"/></svg>
-            </button>
-          </form>
-        </div>
-        <div id="edit-form-<?= $rw["id"] ?>" class="pg-card" style="display:none;margin:10px 0 14px">
-          <h2 style="font-size:15px;font-weight:700;color:#0f172a;margin:0">แก้ไขรางวัล</h2>
-          <form method="post" enctype="multipart/form-data" class="adm-form">
-            <input type="hidden" name="action" value="edit_reward">
-            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-            <input type="hidden" name="reward_id" value="<?= $rw["id"] ?>">
-            <input name="reward_name" placeholder="ชื่อรางวัล" value="<?= e($rw["name"]) ?>" required>
-            <input name="reward_desc" placeholder="คำอธิบาย" value="<?= e($rw["description"]) ?>">
-            <label style="font-size:13px;color:#374151;margin-bottom:4px">รูปภาพรางวัล (เว้นว่างถ้าไม่เปลี่ยน)</label>
-            <input type="file" name="reward_image" accept="image/*" style="background:#f8fafc;border:1.5px dashed #bfdbfe;padding:10px">
-            <div class="adm-row">
-              <input name="cost_points" type="number" placeholder="คะแนนที่ใช้แลก" value="<?= $rw["cost_points"] ?>" required>
-              <input name="stock" type="number" placeholder="จำนวนชิ้น" value="<?= $rw["stock"] ?>">
+      <div class="sp-section">รางวัลทั้งหมด (<?= count($rewards) ?>)</div>
+      <section class="sp-card" style="padding-top:6px;padding-bottom:6px">
+        <?php if (!$rewards): ?>
+          <div class="sp-empty">ยังไม่มีรางวัล</div>
+        <?php endif; ?>
+        <?php foreach ($rewards as $rw): ?>
+          <details class="sp-shoprow">
+            <summary>
+              <?= rewardThumbHtml($rw, 56) ?: '<div class="sp-rw-img ph" style="width:56px;height:56px"></div>' ?>
+              <div class="info">
+                <strong><?= e($rw["name"]) ?></strong>
+                <span><?= e($rw["description"] ?? "") ?: "แตะเพื่อแก้ไข" ?></span>
+              </div>
+              <div class="pts"><?= number_format($rw["cost_points"]) ?> <small>คะแนน</small></div>
+            </summary>
+            <div style="padding-bottom:12px">
+              <form method="post" class="sp-form" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="id" value="<?= intval($rw["id"]) ?>">
+                <label class="sp-upload">
+                  <img alt="" <?= !empty($rw["image_url"]) ? 'src="' . e($rw["image_url"]) . '"' : "hidden" ?>>
+                  <span class="sp-upload-ph" <?= !empty($rw["image_url"]) ? "hidden" : "" ?>>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+                    เพิ่มรูปรางวัล
+                  </span>
+                  <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" onchange="previewImg(this)">
+                </label>
+                <?php if (!empty($rw["image_url"])): ?>
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b">
+                    <input type="checkbox" name="remove_image" value="1" style="width:auto"> ลบรูปนี้
+                  </label>
+                <?php endif; ?>
+                <input name="name" maxlength="150" value="<?= e($rw["name"]) ?>" required>
+                <input name="description" maxlength="500" value="<?= e($rw["description"] ?? "") ?>" placeholder="รายละเอียด">
+                <input name="cost_points" type="number" min="1" value="<?= intval($rw["cost_points"]) ?>" required>
+                <button class="sp-btn" type="submit" style="margin:0">บันทึก</button>
+              </form>
+              <form method="post" style="margin-top:8px" onsubmit="return confirm('ลบรางวัลนี้?')">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="id" value="<?= intval($rw["id"]) ?>">
+                <button class="sp-btn danger" type="submit" style="margin:0">ลบรางวัล</button>
+              </form>
             </div>
-            <div style="display:flex;gap:8px">
-              <button class="adm-btn primary" type="submit">บันทึก</button>
-              <button type="button" class="adm-btn" style="background:#f1f5f9;color:#475569" onclick="document.getElementById('edit-form-<?= $rw["id"] ?>').style.display='none'">ยกเลิก</button>
-            </div>
-          </form>
-        </div>
-      <?php endforeach; ?>
-      <div id="rewards-empty" style="display:none;text-align:center;padding:20px;color:#94a3b8;font-size:13px">ไม่พบรางวัลที่ค้นหา</div>
+          </details>
+        <?php endforeach; ?>
+      </section>
     </div>
-
   </main>
   <script>
-  function revealAndScroll(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = 'block';
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Show the chosen photo right away (before saving).
+  function previewImg(input) {
+    const box = input.closest('.sp-upload');
+    const img = box.querySelector('img');
+    const ph = box.querySelector('.sp-upload-ph');
+    const f = input.files && input.files[0];
+    if (!f) return;
+    if (f.size > <?= SHOP_REWARD_IMG_MAX_MB ?> * 1024 * 1024) {
+      alert('รูปต้องไม่เกิน <?= SHOP_REWARD_IMG_MAX_MB ?>MB');
+      input.value = '';
+      return;
+    }
+    img.src = URL.createObjectURL(f);
+    img.hidden = false;
+    if (ph) ph.hidden = true;
   }
-
-  function filterRewards(q) {
-    q = q.trim().toLowerCase();
-    let visible = 0;
-    document.querySelectorAll('#rewards-list .row-item').forEach(row => {
-      const match = !q || row.dataset.search.includes(q);
-      row.style.display = match ? 'flex' : 'none';
-      if (match) visible++;
-    });
-    document.getElementById('rewards-empty').style.display = visible === 0 ? 'block' : 'none';
-  }
-  <?php if ($autoOpen === "add"): ?>
-  document.addEventListener('DOMContentLoaded', () => revealAndScroll('add-reward-form'));
-  <?php endif; ?>
   </script>
 </body>
 </html>

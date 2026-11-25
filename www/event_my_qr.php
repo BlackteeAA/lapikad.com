@@ -18,6 +18,11 @@ $stmt->execute();
 $lastAttendanceId = intval($stmt->get_result()->fetch_assoc()["m"]);
 
 $displayName = $me["student_name"] !== "" && $me["student_name"] !== null ? $me["student_name"] : $me["name"];
+
+// Opened from an event page (event_room.php?id=…): show that event and go back to it.
+$roomId    = intval($_GET["id"] ?? 0);
+$roomEvent = $roomId > 0 && hasJoinedEvent($conn, $roomId, $userId) ? getEvent($conn, $roomId) : null;
+$closeHref = $roomEvent ? "event_room.php?id=" . $roomId : "events.php";
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -69,7 +74,7 @@ $displayName = $me["student_name"] !== "" && $me["student_name"] !== null ? $me[
 </head>
 <body>
   <div class="card">
-    <a class="close" href="events.php">✕</a>
+    <a class="close" href="<?= e($closeHref) ?>">✕</a>
     <div class="avatar">
       <?php if (!empty($me["avatar_url"])): ?>
         <img src="<?= e($me["avatar_url"]) ?>" alt="">
@@ -78,7 +83,7 @@ $displayName = $me["student_name"] !== "" && $me["student_name"] !== null ? $me[
       <?php endif; ?>
     </div>
     <h1><?= e($displayName) ?></h1>
-    <p class="sub">QR เช็คชื่อประจำตัว</p>
+    <p class="sub">QR ประจำตัว<?= $roomEvent ? " · " . e($roomEvent["title"]) : "" ?></p>
 
     <?php if ($token): ?>
       <img class="qr" src="<?= e(qrImageUrl(EVENT_STUDENT_QR_PREFIX . $token, 320)) ?>" alt="QR Code">
@@ -94,7 +99,11 @@ $displayName = $me["student_name"] !== "" && $me["student_name"] !== null ? $me[
     <div class="mark">✓</div>
     <h2>เช็คชื่อสำเร็จ</h2>
     <p id="ok-title"></p>
-    <button type="button" onclick="document.getElementById('ok').classList.remove('show')">ตกลง</button>
+    <?php if ($roomEvent): ?>
+      <button type="button" onclick="location.href='<?= e($closeHref) ?>'">กลับหน้ากิจกรรม</button>
+    <?php else: ?>
+      <button type="button" onclick="document.getElementById('ok').classList.remove('show')">ตกลง</button>
+    <?php endif; ?>
   </div>
 
   <script>
@@ -105,7 +114,7 @@ $displayName = $me["student_name"] !== "" && $me["student_name"] !== null ? $me[
       const data = await res.json();
       if (data.id && data.id > lastId) {
         lastId = data.id;
-        document.getElementById('ok-title').textContent = data.title + (data.points > 0 ? ' · +' + data.points + ' คะแนน' : '');
+        document.getElementById('ok-title').textContent = data.title;
         document.getElementById('ok').classList.add('show');
         if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
       }

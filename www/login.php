@@ -32,6 +32,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (!empty($_POST["remember"])) {
                 setRememberCookie($conn, $user["id"]);
             }
+            // Came from a council check-in link (event_link.php) while logged out: go back to it.
+            $afterLogin = $_SESSION["after_login"] ?? "";
+            unset($_SESSION["after_login"]);
+            if (preg_match('/^event_link\.php\?k=[0-9A-F]{20}$/', $afterLogin)) redirect($afterLogin);
             redirect("dashboard.php");
         }
     } else {

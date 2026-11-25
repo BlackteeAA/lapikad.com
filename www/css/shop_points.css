@@ -1,0 +1,98 @@
+/* Shop check-in points ("แต้มร้านค้า"): shop_checkin.php, my_points.php,
+   shop_qr.php, shop_rewards.php, shop_deduct.php, place.php. */
+body { font-family:'Kanit',sans-serif; background:#f1f5f9!important; background-image:none!important; }
+
+.sp-wrap { max-width:520px; margin:0 auto; padding-top:6px; }
+.sp-card { background:#fff; border-radius:22px; padding:18px; margin-bottom:14px; box-shadow:0 2px 10px rgba(15,23,42,.06); }
+.sp-section { font-size:15px; font-weight:700; color:#0f172a; margin:6px 0 10px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.sp-section a { font-size:12.5px; color:#2563eb; text-decoration:none; font-weight:500; }
+.sp-empty { text-align:center; color:#94a3b8; font-size:13.5px; padding:14px 0; }
+.sp-hint { font-size:12px; color:#64748b; margin-top:10px; text-align:center; }
+
+.sp-shop-banner {
+  height:110px; border-radius:22px; margin-bottom:-34px; position:relative;
+  background-size:cover; background-position:center; display:flex; align-items:flex-end; padding:12px 16px 44px;
+}
+.sp-shop-banner::before { content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(transparent, rgba(0,0,0,.55)); }
+.sp-shop-banner span { position:relative; color:#fff; font-weight:600; font-size:15px; }
+
+.sp-result { text-align:center; position:relative; padding-top:22px; }
+.sp-mark { width:72px; height:72px; margin:0 auto 12px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:700; }
+.sp-mark.good { background:#dcfce7; color:#16a34a; }
+.sp-mark.info { background:#dbeafe; color:#2563eb; }
+.sp-mark.bad  { background:#fee2e2; color:#dc2626; }
+.sp-result h1 { font-size:22px; margin:0 0 6px; color:#0f172a; }
+.sp-result p  { margin:0; color:#64748b; font-size:14.5px; }
+.sp-gain { display:inline-block; margin-top:14px; padding:8px 20px; border-radius:999px; background:#fef3c7; color:#b45309; font-weight:700; font-size:18px; }
+
+.sp-balance { text-align:center; background:linear-gradient(135deg,#f59e0b,#ef4444); color:#fff; }
+.sp-balance span { display:block; font-size:13px; opacity:.9; }
+.sp-balance b { display:block; font-size:38px; line-height:1.1; margin:4px 0; }
+.sp-balance small { font-size:12px; opacity:.85; }
+
+.sp-reward { display:flex; align-items:center; justify-content:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+.sp-reward > div:not(.sp-cost) { flex:1; min-width:0; }
+.sp-reward:last-of-type { border-bottom:none; }
+.sp-reward strong { display:block; font-size:14.5px; color:#0f172a; }
+.sp-reward span { display:block; font-size:12px; color:#94a3b8; }
+.sp-cost { text-align:right; flex-shrink:0; }
+.sp-cost b { display:block; font-size:17px; color:#b45309; }
+.sp-cost small { font-size:11px; color:#94a3b8; }
+.sp-reward.ready .sp-cost small { color:#16a34a; font-weight:600; }
+
+.sp-btn { display:block; text-align:center; padding:14px; border-radius:16px; background:#2563eb; color:#fff; text-decoration:none; font-weight:600; margin-bottom:10px; border:none; font-family:inherit; font-size:15px; width:100%; cursor:pointer; }
+.sp-btn.ghost { background:#fff; color:#2563eb; }
+.sp-btn.green { background:#16a34a; }
+.sp-btn.danger { background:#fff1f2; color:#e11d48; }
+.sp-btn.sm { display:inline-block; width:auto; padding:9px 14px; font-size:13px; margin:0; border-radius:12px; }
+
+/* my_points.php */
+.sp-myqr { text-align:center; }
+.sp-myqr img { width:220px; max-width:100%; border-radius:16px; }
+.sp-myqr strong { display:block; font-size:16px; color:#0f172a; margin-top:6px; }
+.sp-myqr span { font-size:12.5px; color:#64748b; }
+.sp-shoprow { border-bottom:1px solid #f1f5f9; }
+.sp-shoprow:last-child { border-bottom:none; }
+.sp-shoprow summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:12px; padding:12px 0; }
+.sp-shoprow summary::-webkit-details-marker { display:none; }
+.sp-thumb { width:46px; height:46px; border-radius:14px; flex-shrink:0; background-size:cover; background-position:center; }
+.sp-shoprow .info { flex:1; min-width:0; }
+.sp-shoprow .info strong { display:block; font-size:14.5px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sp-shoprow .info span { font-size:12px; color:#94a3b8; }
+.sp-shoprow .pts { font-size:18px; font-weight:700; color:#b45309; flex-shrink:0; }
+.sp-shoprow .pts small { font-size:11px; font-weight:500; color:#94a3b8; }
+.sp-shoprow .body { padding:0 0 10px 58px; }
+.sp-txn { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f9; font-size:13px; }
+.sp-txn:last-child { border-bottom:none; }
+.sp-txn span { color:#334155; }
+.sp-txn small { display:block; color:#94a3b8; font-size:11.5px; }
+.sp-txn b.plus { color:#16a34a; }
+.sp-txn b.minus { color:#dc2626; }
+
+/* Shop-side pages */
+.sp-form { display:grid; gap:10px; }
+.sp-form input, .sp-form textarea, .sp-form select { width:100%; padding:11px 13px; border-radius:12px; border:1px solid #e2e8f0; font-family:inherit; font-size:14px; background:#fff; box-sizing:border-box; }
+.sp-form label { font-size:12.5px; color:#64748b; }
+.sp-alert { padding:12px 14px; border-radius:14px; font-size:14px; margin-bottom:14px; }
+.sp-alert.good { background:#dcfce7; color:#15803d; }
+.sp-alert.bad  { background:#fee2e2; color:#b91c1c; }
+.sp-customer { display:flex; align-items:center; gap:12px; }
+.sp-avatar { width:54px; height:54px; border-radius:50%; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#2563eb,#22c55e); color:#fff; font-weight:700; font-size:22px; }
+.sp-avatar img { width:100%; height:100%; object-fit:cover; }
+.sp-pick { display:flex; align-items:center; gap:10px; padding:12px; border:1.5px solid #e2e8f0; border-radius:14px; margin-bottom:8px; cursor:pointer; }
+.sp-pick input { width:auto; margin:0; }
+.sp-pick.disabled { opacity:.45; cursor:not-allowed; }
+.sp-pick .grow { flex:1; }
+.sp-pick b { color:#b45309; }
+
+/* Reward images */
+/* Shown whole on a clear background, so transparent PNGs keep their transparency. */
+.sp-rw-img { display:block; flex-shrink:0; border-radius:12px; object-fit:contain; background:transparent; }
+.sp-rw-img.ph { background:#f1f5f9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12v8H4v-8M2 8h20v4H2zM12 8v12M12 8c-2-3-6-3-6-.5S10 8 12 8zm0 0c2-3 6-3 6-.5S14 8 12 8z'/%3E%3C/svg%3E") no-repeat center / 22px; }
+.sp-upload { position:relative; display:block; cursor:pointer; border:1.5px dashed #cbd5e1; border-radius:16px; overflow:hidden; background:#f8fafc; aspect-ratio:16 / 9; }
+.sp-upload img { width:100%; height:100%; object-fit:contain; display:block; }
+.sp-upload-ph { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:#94a3b8; font-size:13px; }
+.sp-upload-ph svg { width:30px; height:30px; }
+.sp-upload [hidden], .sp-upload-ph[hidden] { display:none; }
+.sp-form .sp-upload input[type=file] { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; padding:0; border:none; }
+.sp-pick .sp-rw-img { margin-left:2px; }

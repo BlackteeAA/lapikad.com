@@ -5,6 +5,9 @@ require_once "_events.php";
 $userId      = intval($_SESSION["user_id"]);
 $isAdmin     = ($_SESSION["role"] ?? "") === "admin";
 $isOrganizer = isEventOrganizer($conn, $userId);
+$mySchool    = getUserSchool($conn, $userId);
+$schools     = $isAdmin ? getAllSchools($conn) : [];
+$schoolNames = array_column(getAllSchools($conn), "name", "id");
 
 $msg = "";
 $msgType = "good";
@@ -17,20 +20,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $desc     = trim($_POST["description"] ?? "");
         $location = trim($_POST["location_text"] ?? "");
         $startsAt = trim($_POST["starts_at"] ?? "");
-        $points   = max(0, min(1000, intval($_POST["reward_points"] ?? 0)));
+        $points   = 0; // school events track attendance only, no points
         $allowSelf = !empty($_POST["allow_self_checkin"]) ? 1 : 0;
         $startsAt = $startsAt !== "" ? date("Y-m-d H:i:s", strtotime($startsAt)) : null;
         $secret   = bin2hex(random_bytes(16));
+        // Council/teachers always create for their own school; admins pick one (or all schools).
+        if ($isAdmin) {
+            $eventSchoolId = intval($_POST["school_id"] ?? 0);
+            $eventSchoolId = $eventSchoolId > 0 && isset($schoolNames[$eventSchoolId]) ? $eventSchoolId : null;
+        } else {
+            $eventSchoolId = $mySchool["school_id"];
+        }
 
         if ($title === "") {
             $msg = "กรุณากรอกชื่อกิจกรรม";
             $msgType = "bad";
         } else {
             $stmt = $conn->prepare("
-                INSERT INTO events (title, description, location_text, starts_at, reward_points, allow_self_checkin, qr_secret, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO events (title, description, location_text, starts_at, reward_points, allow_self_checkin, qr_secret, created_by, school_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->bind_param("ssssiisi", $title, $desc, $location, $startsAt, $points, $allowSelf, $secret, $userId);
+            $stmt->bind_param("ssssiisii", $title, $desc, $location, $startsAt, $points, $allowSelf, $secret, $userId, $eventSchoolId);
             $stmt->execute();
             redirect("event_admin.php?id=" . $conn->insert_id . "&created=1");
         }
@@ -43,14 +53,18 @@ if ($isAdmin) {
         FROM events e ORDER BY e.created_at DESC LIMIT 100
     ");
 } else {
+    // Council/teachers see every event of their school; anyone sees events they
+    // created or help scan for.
+    $councilSchoolId = isSchoolCouncil($conn, $userId) ? $mySchool["school_id"] : 0;
     $stmt = $conn->prepare("
-        SELECT e.*, IF(e.created_by = ?, 'owner', 'staff') AS my_role,
+        SELECT e.*, IF(e.created_by = ? OR e.school_id = ?, 'owner', 'staff') AS my_role,
                (SELECT COUNT(*) FROM event_attendances a WHERE a.event_id=e.id) AS attendees
         FROM events e
-        WHERE e.created_by = ? OR e.id IN (SELECT event_id FROM event_staff WHERE user_id = ?)
+        WHERE e.created_by = ? OR e.school_id = ?
+           OR e.id IN (SELECT event_id FROM event_staff WHERE user_id = ?)
         ORDER BY e.created_at DESC LIMIT 100
     ");
-    $stmt->bind_param("iii", $userId, $userId, $userId);
+    $stmt->bind_param("iiiii", $userId, $councilSchoolId, $userId, $councilSchoolId, $userId);
 }
 $stmt->execute();
 $events = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -75,13 +89,18 @@ if (!$isOrganizer && !$events) redirect("events.php");
   <main class="app" style="max-width:100%;background:#f1f5f9">
     <?php include "includes/topbar.php"; ?>
 
-    <a href="events.php" class="back-btn">
+    <a href="<?= $isAdmin ? "admin.php" : "events.php" ?>" class="back-btn">
       <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
       กลับ
     </a>
 
     <div class="pg-head">
-      <h1>จัดการกิจกรรม</h1>
+      <div>
+        <h1>จัดการกิจกรรม</h1>
+        <?php if (!$isAdmin && $mySchool["school_id"]): ?>
+          <span style="font-size:12.5px;color:#64748b"><?= e($mySchool["school_name"]) ?></span>
+        <?php endif; ?>
+      </div>
       <?php if ($isOrganizer): ?>
         <button type="button" class="adm-btn primary" onclick="toggleForm()">+ สร้างกิจกรรม</button>
       <?php endif; ?>
@@ -97,18 +116,20 @@ if (!$isOrganizer && !$events) redirect("events.php");
       <form method="post" class="adm-form">
         <input type="hidden" name="action" value="create_event">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+        <?php if ($isAdmin): ?>
+          <select name="school_id">
+            <option value="">ทุกโรงเรียน (กิจกรรมส่วนกลาง)</option>
+            <?php foreach ($schools as $sc): ?>
+              <option value="<?= $sc["id"] ?>"><?= e($sc["name"]) ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
         <input name="title" placeholder="ชื่อกิจกรรม เช่น เข้าแถวเช้าวันจันทร์, กีฬาสี" required maxlength="180">
         <input name="location_text" placeholder="สถานที่ เช่น หอประชุม, สนามฟุตบอล" maxlength="255">
         <textarea name="description" rows="2" placeholder="รายละเอียด (ไม่บังคับ)"></textarea>
-        <div class="adm-row">
-          <div style="display:grid;gap:4px">
-            <label>วันเวลาเริ่ม</label>
-            <input type="datetime-local" name="starts_at">
-          </div>
-          <div style="display:grid;gap:4px">
-            <label>คะแนนที่ได้รับ</label>
-            <input type="number" name="reward_points" min="0" max="1000" value="0">
-          </div>
+        <div style="display:grid;gap:4px">
+          <label>วันเวลาเริ่ม (ใช้นับการมา / ไม่มา ในรายงาน)</label>
+          <input type="datetime-local" name="starts_at">
         </div>
         <label class="adm-check">
           <input type="checkbox" name="allow_self_checkin" value="1" checked>
@@ -128,7 +149,10 @@ if (!$isOrganizer && !$events) redirect("events.php");
           <div class="row-info">
             <strong><?= e($ev["title"]) ?></strong>
             <span><?= $ev["starts_at"] ? e(eventDateText($ev["starts_at"])) : "ไม่ระบุวันเวลา" ?></span>
-            <span>ผู้เข้าร่วม <?= number_format($ev["attendees"]) ?> คน<?= $ev["my_role"] === "staff" ? " · คุณเป็นผู้ช่วยสแกน" : "" ?></span>
+            <?php if ($isAdmin): ?>
+              <span><?= $ev["school_id"] !== null ? e($schoolNames[$ev["school_id"]] ?? "") : "ทุกโรงเรียน" ?></span>
+            <?php endif; ?>
+            <span>มา <?= number_format($ev["attendees"]) ?> คน<?= $ev["my_role"] === "staff" ? " · คุณเป็นผู้ช่วยสแกน" : "" ?></span>
           </div>
           <span class="badge <?= $ev["is_open"] ? "open" : "closed" ?>"><?= $ev["is_open"] ? "เปิดเช็คชื่อ" : "ปิดอยู่" ?></span>
         </a>

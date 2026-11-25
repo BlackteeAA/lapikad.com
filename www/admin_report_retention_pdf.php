@@ -36,9 +36,6 @@ $visitSql = "
     FROM (
         SELECT q.place_id AS place_id, uq.user_id AS user_id, uq.completed_date AS visit_date
         FROM user_quests uq JOIN quests q ON q.id = uq.quest_id
-        UNION
-        SELECT sr.place_id AS place_id, sr.user_id AS user_id, DATE(sr.created_at) AS visit_date
-        FROM shop_redemptions sr WHERE sr.status = 'completed'
     ) v
     JOIN users u ON u.id = v.user_id
 ";

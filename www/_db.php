@@ -50,50 +50,6 @@ function extractQrCode($rawCode) {
     return strtoupper($rawCode);
 }
 
-define("REDEMPTION_EXPIRY_MINUTES", 5);
-
-function generateRedemptionCode() {
-    return strtoupper(bin2hex(random_bytes(6)));
-}
-
-// If $row (a shop_redemptions row) is still 'pending' but past its expiry, refunds
-// the reserved points/stock and marks it 'expired'. Returns the (possibly updated)
-// status string. Safe to call repeatedly — a no-op once the row isn't pending.
-function expireIfNeeded($conn, $row) {
-    if ($row["status"] !== "pending") {
-        return $row["status"];
-    }
-    if (strtotime($row["expires_at"]) > time()) {
-        return "pending";
-    }
-
-    $conn->begin_transaction();
-    try {
-        $upd = $conn->prepare("UPDATE shop_redemptions SET status='expired' WHERE id=? AND status='pending'");
-        $upd->bind_param("i", $row["id"]);
-        if (!$upd->execute()) throw new Exception($conn->error);
-
-        if ($upd->affected_rows > 0) {
-            $refundPts = $conn->prepare("
-                INSERT INTO user_shop_points (user_id, place_id, points) VALUES (?, ?, ?)
-                ON DUPLICATE KEY UPDATE points = points + VALUES(points)
-            ");
-            $refundPts->bind_param("iii", $row["user_id"], $row["place_id"], $row["points_cost"]);
-            if (!$refundPts->execute()) throw new Exception($conn->error);
-
-            $refundStock = $conn->prepare("UPDATE rewards SET stock = stock + 1 WHERE id=?");
-            $refundStock->bind_param("i", $row["reward_id"]);
-            if (!$refundStock->execute()) throw new Exception($conn->error);
-        }
-
-        $conn->commit();
-        return "expired";
-    } catch (Exception $e) {
-        $conn->rollback();
-        return $row["status"];
-    }
-}
-
 // Straight-line (Haversine) distance between two lat/lng points, in meters.
 function haversineMeters($lat1, $lng1, $lat2, $lng2) {
     $R = 6371000;

@@ -3,3 +3,9 @@
 www/_db_config.php
 www/_mail_config.php
 www/_claude_config.php
+
+# student roster (personal data)
+data/
+
+# MCP config (contains DB password)
+.mcp.json

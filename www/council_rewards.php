@@ -4,8 +4,10 @@ require_once "_council.php";
 $msg = "";
 $msgType = "good";
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    if (!csrf_verify()) redirect("council_rewards.php");
+$schoolQs = $councilSchoolId ? "?school_id=" . $councilSchoolId : "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && $councilSchoolId) {
+    if (!csrf_verify()) redirect("council_rewards.php" . $schoolQs);
     $action = $_POST["action"] ?? "";
 
     if ($action === "add_reward") {
@@ -29,8 +31,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         if ($name !== "" && $cost > 0) {
-            $stmt = $conn->prepare("INSERT INTO rewards (name,description,cost_points,stock,image_url,place_id) VALUES (?,?,?,?,?,NULL)");
-            $stmt->bind_param("ssiis", $name, $desc, $cost, $stock, $img);
+            $stmt = $conn->prepare("INSERT INTO rewards (name,description,cost_points,stock,image_url,place_id,school_id) VALUES (?,?,?,?,?,NULL,?)");
+            $stmt->bind_param("ssiisi", $name, $desc, $cost, $stock, $img, $councilSchoolId);
             $stmt->execute();
             $msg = "เพิ่มรางวัลสำเร็จ";
         } else { $msg = "กรุณากรอกชื่อและคะแนน"; $msgType = "bad"; }
@@ -59,11 +61,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if ($name !== "" && $cost > 0) {
             if ($img !== null) {
-                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, stock=?, image_url=? WHERE id=? AND place_id IS NULL");
-                $stmt->bind_param("ssiisi", $name, $desc, $cost, $stock, $img, $rid);
+                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, stock=?, image_url=? WHERE id=? AND place_id IS NULL AND school_id=?");
+                $stmt->bind_param("ssiisii", $name, $desc, $cost, $stock, $img, $rid, $councilSchoolId);
             } else {
-                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, stock=? WHERE id=? AND place_id IS NULL");
-                $stmt->bind_param("ssiii", $name, $desc, $cost, $stock, $rid);
+                $stmt = $conn->prepare("UPDATE rewards SET name=?, description=?, cost_points=?, stock=? WHERE id=? AND place_id IS NULL AND school_id=?");
+                $stmt->bind_param("ssiiii", $name, $desc, $cost, $stock, $rid, $councilSchoolId);
             }
             $stmt->execute();
             $msg = "บันทึกการแก้ไขสำเร็จ";
@@ -72,14 +74,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($action === "delete_reward") {
         $rid = intval($_POST["reward_id"] ?? 0);
-        $stmt = $conn->prepare("DELETE FROM rewards WHERE id=? AND place_id IS NULL");
-        $stmt->bind_param("i", $rid);
+        $stmt = $conn->prepare("DELETE FROM rewards WHERE id=? AND place_id IS NULL AND school_id=?");
+        $stmt->bind_param("ii", $rid, $councilSchoolId);
         $stmt->execute();
         $msg = "ลบรางวัลสำเร็จ";
     }
 }
 
-$rewards = $conn->query("SELECT * FROM rewards WHERE place_id IS NULL ORDER BY id DESC")->fetch_all(MYSQLI_ASSOC);
+$rewards = [];
+if ($councilSchoolId) {
+    $stmt = $conn->prepare("SELECT * FROM rewards WHERE place_id IS NULL AND school_id=? ORDER BY id DESC");
+    $stmt->bind_param("i", $councilSchoolId);
+    $stmt->execute();
+    $rewards = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+// Admins without a school picked see the list of schools to choose from.
+$pickSchools = (isSiteAdmin() && !$councilSchoolId) ? getAllSchools($conn) : [];
 $autoOpen = $_GET["open"] ?? "";
 ?>
 <!DOCTYPE html>
@@ -144,16 +154,33 @@ $autoOpen = $_GET["open"] ?? "";
   <main class="app" style="max-width:100%;background:#f1f5f9">
     <?php include "includes/topbar.php"; ?>
 
-    <a href="dashboard.php" class="back-btn">
+    <a href="<?= isSiteAdmin() ? ($councilSchoolId ? "council_rewards.php" : "admin.php") : "dashboard.php" ?>" class="back-btn">
       <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
       กลับ
     </a>
 
+    <?php if (!$councilSchoolId): ?>
+    <div class="pg-head"><h1>รางวัลโรงเรียน</h1></div>
+    <p style="margin:-10px 0 14px;font-size:12.5px;color:#94a3b8">เลือกโรงเรียนที่ต้องการจัดการรางวัล</p>
+    <div class="pg-card">
+      <?php if (!$pickSchools): ?>
+        <div style="text-align:center;padding:24px;color:#94a3b8;font-size:13px">ยังไม่มีโรงเรียน <a href="admin_schools.php">เพิ่มโรงเรียน</a></div>
+      <?php endif; ?>
+      <?php foreach ($pickSchools as $sc): ?>
+        <a class="row-item" href="council_rewards.php?school_id=<?= $sc["id"] ?>" style="text-decoration:none">
+          <div class="row-info">
+            <strong><?= e($sc["name"]) ?></strong>
+            <span><?= e(schoolPlaceText($sc)) ?></span>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+    <?php else: ?>
     <div class="pg-head">
       <h1>รางวัลโรงเรียน</h1>
       <button type="button" class="adm-btn primary" onclick="revealAndScroll('add-reward-form')">+ เพิ่มรางวัล</button>
     </div>
-    <p style="margin:-10px 0 14px;font-size:12.5px;color:#94a3b8">รางวัลส่วนกลางของโรงเรียน ไม่ผูกกับร้านค้าใดร้านหนึ่ง</p>
+    <p style="margin:-10px 0 14px;font-size:12.5px;color:#94a3b8">รางวัลของ <?= e($councilSchool["name"]) ?> · ไม่ผูกกับร้านค้าใดร้านหนึ่ง</p>
 
     <?php if ($msg): ?>
       <div class="adm-alert <?= $msgType ?>"><?= e($msg) ?></div>
@@ -165,13 +192,14 @@ $autoOpen = $_GET["open"] ?? "";
       <form method="post" enctype="multipart/form-data" class="adm-form">
         <input type="hidden" name="action" value="add_reward">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+        <input type="hidden" name="school_id" value="<?= intval($councilSchoolId) ?>">
         <input name="reward_name" placeholder="ชื่อรางวัล" required>
         <input name="reward_desc" placeholder="คำอธิบาย">
         <label style="font-size:13px;color:#374151;margin-bottom:4px">รูปภาพรางวัล</label>
         <input type="file" name="reward_image" accept="image/*" style="background:#f8fafc;border:1.5px dashed #bfdbfe;padding:10px">
         <div class="adm-row">
           <input name="cost_points" type="number" placeholder="คะแนนที่ใช้แลก" required>
-          <input name="stock" type="number" placeholder="จำนวนชิ้น" value="10">
+          <input name="stock" type="number" placeholder="จำนวนชิ้น" min="0" required>
         </div>
         <button class="adm-btn primary" type="submit">เพิ่มรางวัล</button>
       </form>
@@ -203,6 +231,7 @@ $autoOpen = $_GET["open"] ?? "";
           <form method="post">
             <input type="hidden" name="action" value="delete_reward">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+        <input type="hidden" name="school_id" value="<?= intval($councilSchoolId) ?>">
             <input type="hidden" name="reward_id" value="<?= $rw["id"] ?>">
             <button type="submit" class="icon-btn" title="ลบ" onclick="return confirm('ลบรางวัลนี้?')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7h12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M7 7l1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13"/></svg>
@@ -214,6 +243,7 @@ $autoOpen = $_GET["open"] ?? "";
           <form method="post" enctype="multipart/form-data" class="adm-form">
             <input type="hidden" name="action" value="edit_reward">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+        <input type="hidden" name="school_id" value="<?= intval($councilSchoolId) ?>">
             <input type="hidden" name="reward_id" value="<?= $rw["id"] ?>">
             <input name="reward_name" placeholder="ชื่อรางวัล" value="<?= e($rw["name"]) ?>" required>
             <input name="reward_desc" placeholder="คำอธิบาย" value="<?= e($rw["description"]) ?>">
@@ -232,6 +262,7 @@ $autoOpen = $_GET["open"] ?? "";
       <?php endforeach; ?>
       <div id="rewards-empty" style="display:none;text-align:center;padding:20px;color:#94a3b8;font-size:13px">ไม่พบรางวัลที่ค้นหา</div>
     </div>
+    <?php endif; ?>
 
   </main>
   <script>

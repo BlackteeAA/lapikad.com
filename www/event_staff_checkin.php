@@ -43,6 +43,12 @@ if (!$event["is_open"]) {
             $state = "already";
             $title = "เช็คชื่อไปแล้ว";
             $message = "";
+        } elseif ($r === "other_school") {
+            $title = "ต่างโรงเรียน";
+            $message = "นักเรียนคนนี้ไม่ได้อยู่โรงเรียนของกิจกรรมนี้";
+        } elseif ($r === "not_joined") {
+            $title = "ยังไม่ได้เข้างาน";
+            $message = "นักเรียนต้องสแกนลิงก์/QR เข้างานของกิจกรรมนี้ก่อน";
         } else {
             $title = "บันทึกไม่สำเร็จ";
             $message = "กรุณาสแกนใหม่";

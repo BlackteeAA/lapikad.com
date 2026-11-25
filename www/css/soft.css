@@ -1,0 +1,152 @@
+/* ==========================================================
+   soft.css — ชั้นปรับ UI ให้ดูนุ่มนวล สบายตา
+   โหลดต่อท้ายจาก includes/topbar.php จึงทับสไตล์ของแต่ละหน้า
+   ถ้าไม่ชอบ ลบบรรทัด <link ... soft.css> ใน topbar.php ก็กลับเป็นแบบเดิม
+   ========================================================== */
+
+:root {
+  --soft-bg: #f4f7fb;
+  --soft-text: #1e293b;
+  --soft-muted: #64748b;
+  --soft-line: rgba(15, 23, 42, .06);
+  --soft-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 20px rgba(15, 23, 42, .05);
+  --soft-shadow-hover: 0 2px 4px rgba(15, 23, 42, .05), 0 12px 28px rgba(15, 23, 42, .08);
+  --soft-ring: 0 0 0 4px rgba(37, 99, 235, .14);
+  --soft-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* ── พื้นฐาน: ตัวอักษรนุ่ม พื้นหลังโทนอ่อนมีมิติ ── */
+html { scroll-behavior: smooth; }
+
+body {
+  color: var(--soft-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  background:
+    radial-gradient(1200px 500px at 100% -10%, rgba(59, 130, 246, .08), transparent 60%),
+    radial-gradient(900px 400px at -10% 10%, rgba(34, 197, 94, .06), transparent 60%),
+    var(--soft-bg) !important;
+  background-attachment: fixed !important;
+}
+
+/* ให้พื้นหลังไล่สีของ body โผล่ผ่าน main (เดิมทับด้วยสีเทาทึบ) */
+main.app { background: transparent !important; }
+
+::selection { background: rgba(37, 99, 235, .18); }
+
+/* เฟดเข้าเบาๆ ตอนเปิดหน้า (ใช้ opacity อย่างเดียว ไม่ให้ของที่ fixed เพี้ยน) */
+main.app { animation: softFadeIn .35s ease-out both; }
+@keyframes softFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── การ์ด: เงาบางๆ หลายชั้น + เส้นขอบจางๆ ── */
+.panel, .card, .pg-card, .q-card, .auth-card, .filter-card, .result-card,
+.shop-card, .qr-card, .place-card, .pf-card, .edit-panel, .cat-panel,
+.adm-stat-card, .quick-card, .modern-place-card, .profile-stat-card {
+  border: 1px solid var(--soft-line);
+  box-shadow: var(--soft-shadow) !important;
+  transition: box-shadow .25s var(--soft-ease), transform .25s var(--soft-ease);
+}
+
+/* การ์ดที่กดได้ ยกขึ้นนิดๆ */
+a.card:hover, a.q-card:hover, a.place-card:hover, a.shop-card:hover,
+a.quick-card:hover, a.modern-place-card:hover {
+  box-shadow: var(--soft-shadow-hover) !important;
+  transform: translateY(-2px);
+}
+
+/* ── ปุ่ม: มีปฏิกิริยาตอนกด รู้สึกว่ากดโดนจริง ── */
+button, .btn, .adm-btn, .q-btn, .pill-btn, .auth-btn, .result-btn,
+.hero-btn, .place-btn, .primary-btn, .rc-btn-primary, .rc-btn-ghost,
+.cm-hero-btn, .show-more-btn, .up-follow-btn, .icon-btn, .back-btn,
+.side-links a, .profile-menu a {
+  transition:
+    transform .15s var(--soft-ease),
+    box-shadow .2s var(--soft-ease),
+    background-color .2s ease,
+    color .2s ease,
+    opacity .2s ease;
+}
+
+button:active, .btn:active, .adm-btn:active, .q-btn:active, .pill-btn:active,
+.auth-btn:active, .result-btn:active, .hero-btn:active, .place-btn:active,
+.primary-btn:active, .rc-btn-primary:active, .rc-btn-ghost:active,
+.cm-hero-btn:active, .show-more-btn:active, .up-follow-btn:active,
+.icon-btn:active, .side-links a:active, .profile-menu a:active {
+  transform: scale(.97);
+}
+
+/* ปุ่มสีหลักมีเงาสีฟ้าอ่อนๆ ให้ดูนุ่ม ไม่แบน */
+.adm-btn.primary, .hero-btn, .primary-btn, .auth-btn, .rc-btn-primary {
+  box-shadow: 0 6px 16px rgba(37, 99, 235, .22);
+}
+.adm-btn:hover, .hero-btn:hover, .primary-btn:hover { opacity: .92; }
+
+/* โฟกัสด้วยคีย์บอร์ด: วงแหวนนุ่มๆ แทนกรอบดำ */
+a:focus-visible, button:focus-visible {
+  outline: none;
+  box-shadow: var(--soft-ring) !important;
+  border-radius: 12px;
+}
+
+/* ── ช่องกรอก: พื้นอ่อน เส้นจาง โฟกัสแล้วเรืองฟ้าเบาๆ ── */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="search"], input[type="tel"],
+input[type="url"], input[type="date"], input[type="time"],
+input[type="datetime-local"], textarea, select {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px;
+  color: var(--soft-text);
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+input[type="number"]:focus, input[type="search"]:focus, input[type="tel"]:focus,
+input[type="url"]:focus, input[type="date"]:focus, input[type="time"]:focus,
+input[type="datetime-local"]:focus, textarea:focus, select:focus {
+  outline: none;
+  background: #fff !important;
+  border-color: #93c5fd !important;
+  box-shadow: var(--soft-ring) !important;
+}
+
+/* ช่องที่ฝังอยู่ในกล่องค้นหา ให้คงความโปร่งไว้ */
+.search-box input, .search-box input:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.search-box { transition: box-shadow .2s ease; }
+.search-box:focus-within { box-shadow: var(--soft-ring), var(--soft-shadow) !important; }
+
+/* ── ป้าย/ชิป: มนกลม ── */
+.badge, .chip, .cat-badge, .type-badge, .role-badge { border-radius: 999px; }
+
+/* ── แถบบน: ขาวโปร่งนิดๆ + เบลอ ── */
+.mobile-topbar {
+  background: rgba(255, 255, 255, .85) !important;
+  backdrop-filter: saturate(180%) blur(14px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(14px) !important;
+  box-shadow: 0 1px 0 var(--soft-line) !important;
+}
+
+/* ── เมนูข้าง ── */
+.side-links a { border-radius: 14px; }
+.side-links a:hover { background: #eff6ff; color: #2563eb; }
+
+/* ── scrollbar บางๆ บนคอม ── */
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* คนที่ตั้งค่าลดการเคลื่อนไหวไว้ ปิดแอนิเมชันทั้งหมด */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

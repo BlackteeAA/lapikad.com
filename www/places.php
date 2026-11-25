@@ -18,6 +18,19 @@ $stmt_p = $conn->prepare("
 $stmt_p->bind_param("i", $userId);
 $stmt_p->execute();
 $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Filter options: provinces and the districts in each (only ones that have places).
+$districtsByProvince = [];
+foreach ($placeRows as $r) {
+    $pv = trim($r["province"] ?? "");
+    $dt = trim($r["district"] ?? "");
+    if ($pv === "") continue;
+    $districtsByProvince[$pv] = $districtsByProvince[$pv] ?? [];
+    if ($dt !== "" && !in_array($dt, $districtsByProvince[$pv], true)) $districtsByProvince[$pv][] = $dt;
+}
+ksort($districtsByProvince);
+foreach ($districtsByProvince as &$list) sort($list);
+unset($list);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -37,6 +50,26 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
     .places-header { margin-bottom: 18px; }
     .places-header h1 { font-size: 26px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
     .places-header p  { font-size: 14px; color: #64748b; margin: 0; }
+
+    /* ── Search / filter ── */
+    .pl-filter { display: grid; gap: 8px; margin-bottom: 14px; }
+    .pl-search {
+      display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 14px; padding: 0 12px; box-shadow: 0 1px 4px rgba(15,23,42,.04);
+    }
+    .pl-search:focus-within { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .pl-search svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: #94a3b8; stroke-width: 2; stroke-linecap: round; }
+    .pl-search input { flex: 1; min-width: 0; border: none; outline: none; background: none; font-family: inherit; font-size: 14.5px; padding: 12px 0; color: #0f172a; }
+    .pl-search button { border: none; background: #f1f5f9; color: #64748b; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 14px; line-height: 1; display: none; }
+    .pl-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pl-selects select {
+      appearance: none; -webkit-appearance: none; width: 100%; min-width: 0; font-family: inherit; font-size: 13.5px; color: #0f172a;
+      padding: 10px 30px 10px 12px; border-radius: 12px; border: 1px solid #e2e8f0;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 14px;
+    }
+    .pl-selects select:disabled { color: #94a3b8; background-color: #f8fafc; }
+    .pl-count { font-size: 12.5px; color: #64748b; margin: -4px 2px 10px; }
+    #no-match-msg { display: none; text-align: center; padding: 26px 10px; color: #64748b; font-size: 14px; }
 
     .gps-status {
       display: flex;
@@ -202,6 +235,26 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
       <p>เลือกสถานที่ที่คุณอยู่ในรัศมี 20 กม.</p>
     </div>
 
+    <div class="pl-filter">
+      <label class="pl-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="search" id="pl-q" placeholder="ค้นหาชื่อร้านหรือสถานที่" autocomplete="off">
+        <button type="button" id="pl-clear" aria-label="ล้าง">×</button>
+      </label>
+      <div class="pl-selects">
+        <select id="pl-province" aria-label="จังหวัด">
+          <option value="">ทุกจังหวัด</option>
+          <?php foreach (array_keys($districtsByProvince) as $pv): ?>
+            <option value="<?= e($pv) ?>"><?= e($pv) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <select id="pl-district" aria-label="อำเภอ" disabled>
+          <option value="">ทุกอำเภอ</option>
+        </select>
+      </div>
+    </div>
+    <div class="pl-count" id="pl-count" style="display:none"></div>
+
     <div class="gps-status loading" id="gps-status">
       <span class="gps-dot"></span>
       <span>กำลังระบุตำแหน่ง GPS...</span>
@@ -218,7 +271,10 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
            data-id="<?= $p["id"] ?>"
            data-lat="<?= $p["lat"] ?: '' ?>"
            data-lng="<?= $p["lng"] ?: '' ?>"
-           data-hasgps="<?= $hasGps ? '1' : '0' ?>">
+           data-hasgps="<?= $hasGps ? '1' : '0' ?>"
+           data-name="<?= e(mb_strtolower($p["name"] . " " . ($p["category"] ?? "") . " " . ($p["location_text"] ?? ""), "UTF-8")) ?>"
+           data-province="<?= e(trim($p["province"] ?? "")) ?>"
+           data-district="<?= e(trim($p["district"] ?? "")) ?>">
 
           <div class="place-icon">
             <?php if ($p["image_url"]): ?>
@@ -253,6 +309,11 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
       <?php endforeach; ?>
     </div>
 
+    <div id="no-match-msg">
+      ไม่พบสถานที่ที่ตรงกับการค้นหา<br>
+      <small style="color:#94a3b8">ลองเปลี่ยนคำค้นหา จังหวัด หรืออำเภอ</small>
+    </div>
+
     <div id="no-places-msg">
       ไม่พบสถานที่ในรัศมี 20 กม.<br>
       <small style="color:#94a3b8">ลองเปลี่ยนสถานที่หรือตรวจสอบ GPS</small>
@@ -261,6 +322,47 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
   </main>
 
   <script>
+  // ── Search / filter by name, province, district ──
+  const DISTRICTS = <?= json_encode($districtsByProvince, JSON_UNESCAPED_UNICODE) ?>;
+  const qEl = document.getElementById('pl-q');
+  const provEl = document.getElementById('pl-province');
+  const distEl = document.getElementById('pl-district');
+  const clearEl = document.getElementById('pl-clear');
+
+  function fillDistricts() {
+    const list = DISTRICTS[provEl.value] || [];
+    distEl.innerHTML = '<option value="">ทุกอำเภอ</option>' +
+      list.map(d => '<option value="' + d.replace(/"/g, '&quot;') + '">อ.' + d.replace(/</g, '&lt;') + '</option>').join('');
+    distEl.disabled = !provEl.value || !list.length;
+  }
+
+  function applyFilter() {
+    const q = qEl.value.trim().toLowerCase();
+    const pv = provEl.value, dt = distEl.value;
+    const active = q || pv || dt;
+    let shown = 0;
+    document.querySelectorAll('.place-card').forEach(card => {
+      const ok = (!q || card.dataset.name.includes(q))
+              && (!pv || card.dataset.province === pv)
+              && (!dt || card.dataset.district === dt);
+      card.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    clearEl.style.display = q ? 'block' : 'none';
+    const count = document.getElementById('pl-count');
+    count.style.display = active ? 'block' : 'none';
+    count.textContent = 'พบ ' + shown + ' แห่ง';
+    document.getElementById('no-match-msg').style.display = active && !shown ? 'block' : 'none';
+    // The "nothing within 20 km" note only makes sense without a filter.
+    if (active) document.getElementById('no-places-msg').style.display = 'none';
+  }
+
+  qEl.addEventListener('input', applyFilter);
+  provEl.addEventListener('change', () => { fillDistricts(); applyFilter(); });
+  distEl.addEventListener('change', applyFilter);
+  clearEl.addEventListener('click', e => { e.preventDefault(); qEl.value = ''; applyFilter(); qEl.focus(); });
+
+
   const MAX_KM = 20;
 
   function haversine(lat1, lng1, lat2, lng2) {
@@ -318,6 +420,7 @@ $placeRows = $stmt_p->get_result()->fetch_all(MYSQLI_ASSOC);
 
     document.getElementById('no-places-msg').style.display = visible === 0 ? 'block' : 'none';
     setStatus('ok', 'ระบุตำแหน่งสำเร็จ · แสดงสถานที่ในรัศมี ' + MAX_KM + ' กม.');
+    applyFilter();
   }
 
   if (navigator.geolocation) {

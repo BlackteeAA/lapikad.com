@@ -1,5 +1,5 @@
 <?php
-// Shared full-screen QR scanner page, used by scan.php and shop_scan_redeem.php.
+// Shared full-screen QR scanner page, used by scan.php.
 // Caller must set before including this file:
 //   $scannerTitle        - <title> text
 //   $scannerBackHref     - back link URL

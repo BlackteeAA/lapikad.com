@@ -780,7 +780,14 @@ textarea {
   width: 290px;
   max-width: 82vw;
   height: 100vh;
+  height: 100dvh;
   padding: 20px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 18px 0 40px rgba(15, 23, 42, 0.18);
@@ -796,6 +803,12 @@ textarea {
 .menu-toggle:checked ~ .menu-backdrop {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* ล็อกไม่ให้หน้าหลักเลื่อนตามตอนเปิดเมนู */
+html:has(.menu-toggle:checked),
+body:has(.menu-toggle:checked) {
+  overflow: hidden;
 }
 
 .side-close {

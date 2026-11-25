@@ -8,7 +8,7 @@ $userId = intval($_SESSION["user_id"]);
 $after  = intval($_GET["after"] ?? 0);
 
 $stmt = $conn->prepare("
-    SELECT a.id, e.title, e.reward_points
+    SELECT a.id, e.title
     FROM event_attendances a JOIN events e ON e.id = a.event_id
     WHERE a.user_id=? AND a.id > ?
     ORDER BY a.id DESC LIMIT 1
@@ -18,5 +18,5 @@ $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
 
 echo json_encode($row
-    ? ["id" => intval($row["id"]), "title" => $row["title"], "points" => intval($row["reward_points"])]
+    ? ["id" => intval($row["id"]), "title" => $row["title"]]
     : ["id" => 0], JSON_UNESCAPED_UNICODE);
