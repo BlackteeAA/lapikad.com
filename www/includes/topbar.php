@@ -34,13 +34,6 @@ if ($isLoggedIn && isset($conn)) {
     }
 }
 
-// Global "น้องพิกัด" AI chat entry point — hidden on the chat page itself.
-$aiGuideLink = "ai_guide.php";
-if ($currentPage === "place.php" && !empty($_GET["id"])) {
-    $aiGuideLink .= "?place_id=" . intval($_GET["id"]);
-}
-$showAiChatFab = $isLoggedIn && $currentPage !== "ai_guide.php";
-
 $notifications = [];
 if ($isLoggedIn && isset($conn)) {
     $notifId = intval($_SESSION["user_id"]);
@@ -84,8 +77,7 @@ function notifTimeAgo($dt) {
     background: #ffffff !important;
   }
   /* ซ่อน bottom nav / ปุ่ม AI ตอนเปิดเมนู และล็อกหน้าหลักไม่ให้เลื่อน */
-  .menu-toggle:checked ~ .bottom-nav,
-  .menu-toggle:checked ~ .ai-chat-fab { display: none !important; }
+  .menu-toggle:checked ~ .bottom-nav { display: none !important; }
   html:has(#menu-toggle:checked),
   body:has(#menu-toggle:checked) { overflow: hidden !important; }
 
@@ -117,7 +109,6 @@ function notifTimeAgo($dt) {
   .bottom-nav a:not(.nav-scan) { flex: 0 0 46px !important; width: 46px; margin: 0 auto; }
   .bottom-nav a.active:not(.nav-scan) { background: #eff6ff !important; color: #2563eb !important; }
   .app { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)) !important; }
-  .ai-chat-fab { bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
 
   /* ปุ่มกล้องตรงกลาง (ยื่นขึ้นเหนือแถบ) */
   .bottom-nav a.nav-scan,
@@ -297,52 +288,6 @@ function notifTimeAgo($dt) {
     <span>ฉัน</span>
   </a>
 </nav>
-
-<?php if ($showAiChatFab): ?>
-<style>
-  .ai-chat-fab {
-    position: fixed;
-    right: 16px;
-    bottom: 86px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 8px 24px rgba(37,99,235,.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    overflow: hidden;
-    z-index: 950;
-  }
-  .ai-chat-fab img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-  .ai-chat-badge {
-    position: absolute;
-    top: -2px; right: -2px;
-    width: 15px; height: 15px;
-    border-radius: 50%;
-    background: #ef4444;
-    border: 2px solid #fff;
-    animation: aiChatPulse 1.6s infinite;
-  }
-  .ai-chat-badge.hide { display: none; }
-  @keyframes aiChatPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.55); }
-    70%  { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
-    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-  }
-</style>
-<a href="<?= e($aiGuideLink) ?>" class="ai-chat-fab" id="ai-chat-fab" aria-label="แชทกับน้องพิกัด AI ไกด์นำเที่ยว">
-  <img src="assets/images/nong-pikad.png" alt="น้องพิกัด">
-  <span class="ai-chat-badge<?= isset($_COOKIE["ai_chat_seen"]) ? " hide" : "" ?>" id="ai-chat-badge"></span>
-</a>
-<script>
-  document.getElementById('ai-chat-fab').addEventListener('click', function () {
-    document.cookie = "ai_chat_seen=1; max-age=31536000; path=/";
-  });
-</script>
-<?php endif; ?>
 
 <script>
 (function(){
