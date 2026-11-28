@@ -2,7 +2,23 @@
 require_once __DIR__ . "/lib/PHPMailer/Exception.php";
 require_once __DIR__ . "/lib/PHPMailer/PHPMailer.php";
 require_once __DIR__ . "/lib/PHPMailer/SMTP.php";
-require_once __DIR__ . "/_mail_config.php";
+
+// Same two sources as the database config in _db.php: the copied config file
+// first, then the environment. This used to be an unconditional require, so a
+// checkout without _mail_config.php made forgot_password.php die with a fatal
+// error — and print the full server path and stack trace to the visitor.
+// Mail being unconfigured now just means sendAppMail() returns false.
+if (is_file(__DIR__ . "/_mail_config.php")) {
+    require_once __DIR__ . "/_mail_config.php";
+}
+
+$smtpHost     = $smtpHost     ?? (getenv("SMTP_HOST") ?: "");
+$smtpPort     = $smtpPort     ?? (getenv("SMTP_PORT") ?: 587);
+$smtpSecure   = $smtpSecure   ?? (getenv("SMTP_SECURE") ?: "tls");
+$smtpUser     = $smtpUser     ?? (getenv("SMTP_USER") ?: "");
+$smtpPass     = $smtpPass     ?? (getenv("SMTP_PASS") ?: "");
+$smtpFrom     = $smtpFrom     ?? (getenv("SMTP_FROM") ?: "");
+$smtpFromName = $smtpFromName ?? (getenv("SMTP_FROM_NAME") ?: "ล่าพิกัด.com");
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
@@ -12,6 +28,12 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 // Pass $error by reference to capture the reason when it fails (debugging aid).
 function sendAppMail($toEmail, $toName, $subject, $body, &$error = null) {
     global $smtpHost, $smtpPort, $smtpSecure, $smtpUser, $smtpPass, $smtpFrom, $smtpFromName;
+
+    if ($smtpHost === "" || $smtpFrom === "") {
+        $error = "SMTP is not configured";
+        error_log("sendAppMail: no SMTP settings — copy www/_mail_config.example.php to www/_mail_config.php");
+        return false;
+    }
 
     $mail = new PHPMailer(true);
     try {
