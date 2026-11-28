@@ -78,9 +78,16 @@ function client_ip() {
 // client sent. A request carrying "Host: evil.com" would otherwise make us mail
 // the victim a genuine reset link pointing at the attacker's site, handing them
 // the token and the account.
+//
+// The domain is ล่าพิกัด.com, but it is written here in its punycode (A-label)
+// form, because that is what a browser actually puts in the Host header — the
+// Thai text is only ever what the address bar displays. Entering it in Thai
+// would match no real request, every one of them would fall through to the
+// first entry, and the links we mail out would point at the wrong host.
+// Convert a new IDN with: node -e "console.log(require('url').domainToASCII('ล่าพิกัด.com'))"
 const APP_ALLOWED_HOSTS = [
-    'lapikad.com',
-    'www.lapikad.com',
+    'xn--12c2b2a1a6ddp1n.com',      // ล่าพิกัด.com
+    'www.xn--12c2b2a1a6ddp1n.com',  // www.ล่าพิกัด.com
     'localhost:8080',
     'localhost',
     '127.0.0.1:8080',
