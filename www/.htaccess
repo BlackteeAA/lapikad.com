@@ -2,9 +2,12 @@ RewriteEngine On
 
 # Force HTTPS, with two exceptions.
 #
-# 1. Behind the Caddy reverse proxy TLS is terminated at the proxy and the
-#    request reaches Apache as plain HTTP, so %{HTTPS} alone would redirect to
-#    https for ever in a loop. Caddy sets X-Forwarded-Proto: https on those.
+# 1. Where TLS is terminated ahead of Apache — a load balancer, a CDN, or a
+#    reverse proxy — the request arrives as plain HTTP, so %{HTTPS} alone would
+#    redirect to https for ever in a loop. Such proxies set X-Forwarded-Proto,
+#    so trust that when it says https. cPanel serves TLS directly today and
+#    sets %{HTTPS}, but putting anything in front would otherwise break the
+#    site in a way that is tedious to diagnose.
 # 2. Plain http://localhost:8080 is how the Docker dev setup is used, and there
 #    is no certificate for it — redirecting there just breaks dev.
 RewriteCond %{HTTPS} off

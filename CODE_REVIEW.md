@@ -1,7 +1,7 @@
 # รีวิวโค้ด lapikad.com
 
 รีวิวจาก clone `main` วันที่ 28 พ.ย. 2026 (push ล่าสุด 27 พ.ย. 2026)
-ขอบเขต: 90 ไฟล์ PHP ใน `www/` (~15,500 บรรทัด), 22 ไฟล์ SQL, Docker/Caddy config
+ขอบเขต: 90 ไฟล์ PHP ใน `www/` (~15,500 บรรทัด), 22 ไฟล์ SQL, Docker config
 
 > **สถานะ:** ข้อ 1–10 แก้แล้ว `php -l` ผ่าน 86 ไฟล์ และทดสอบรันจริงด้วย
 > `docker compose up` แล้ว (28 พ.ย. 2026)
@@ -25,7 +25,9 @@
    เหมือน `_db.php` ทั้งสองไฟล์ ไม่มี config ก็ทำงานต่อได้ (mail ส่งไม่ออก / Claude ใช้ mock)
 2. **`display_errors` เปิดอยู่ใน image** → ใส่ `errors.ini` ปิด และเปิด `log_errors`
 3. **service `web` ไม่ publish port เลย** ทำให้ `http://localhost:8080` ที่ README บอก
-   ใช้ไม่ได้มาตลอด (Caddyfile ตอบเฉพาะโดเมนจริง) → เพิ่ม `127.0.0.1:8080:80`
+   ใช้ไม่ได้มาตลอด (Caddy ที่อยู่หน้าตอบเฉพาะโดเมนจริง) → เพิ่ม `127.0.0.1:8080:80`
+   ภายหลังเอา service `caddy` ออกทั้งหมด เพราะ production เป็น cPanel ไม่ได้ใช้ Caddy
+   และ dev เข้าทาง `localhost:8080` ตรงเข้า `web` อยู่แล้ว
 4. **กฎบังคับ HTTPS ทำให้ dev เข้าไม่ได้** หลังเปิด `AllowOverride` — regression ที่เกิดจาก
    การแก้ข้อ 8 เอง → ยกเว้น localhost/127.0.0.1 ออกจากกฎ
 5. **`rename_shop_category.sql` พังบนฐานข้อมูลใหม่** → เขียน `add_legacy_drift_columns.sql`

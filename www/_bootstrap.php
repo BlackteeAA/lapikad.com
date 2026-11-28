@@ -44,12 +44,13 @@ function csrf_rotate() {
 
 // The end user's IP, for per-IP rate limiting.
 //
-// Behind the Caddy reverse proxy REMOTE_ADDR is the proxy's own container
-// address, so every visitor would share one bucket. Caddy appends the real peer
-// to X-Forwarded-For, so its LAST entry is the client. We only read that header
-// when REMOTE_ADDR is a private address (i.e. the request really did come from
-// a local proxy) — otherwise a client could spoof the header to get a fresh
-// bucket per request.
+// On cPanel the request reaches PHP directly and REMOTE_ADDR is the visitor.
+// Behind a proxy it is the proxy instead, and every visitor would share one
+// bucket; a proxy appends the real peer to X-Forwarded-For, so that header's
+// LAST entry is the client. We read it only when REMOTE_ADDR is a private
+// address — i.e. the request really did arrive from something on the local
+// network — otherwise a client could spoof the header to get a fresh bucket
+// per request and walk straight past the rate limit.
 function client_ip() {
     $remote = $_SERVER['REMOTE_ADDR'] ?? '';
     $viaLocalProxy = $remote !== '' && !filter_var(
