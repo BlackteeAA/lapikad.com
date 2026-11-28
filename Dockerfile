@@ -27,6 +27,10 @@ RUN { \
       echo "log_errors = On"; \
     } > /usr/local/etc/php/conf.d/errors.ini
 
-COPY ./www /var/www/html
-
+# No COPY of ./www on purpose. docker-compose.yml bind-mounts it over
+# /var/www/html, so a baked-in copy was always shadowed — you could not tell
+# which version an image held, and every code change looked like it needed a
+# rebuild when it did not. This image is the PHP/Apache environment only; the
+# code comes from the mount. Production is a plain file upload to cPanel and
+# never uses this image.
 EXPOSE 80
