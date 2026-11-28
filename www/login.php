@@ -1,5 +1,6 @@
 <?php
 require_once "_db.php";
+require_once "_ratelimit.php";
 
 $msg = "";
 
@@ -16,30 +17,50 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = strtolower(trim($_POST["email"] ?? ""));
     $password = $_POST["password"] ?? "";
 
-    $stmt = $conn->prepare("SELECT id, name, password_hash, role, is_banned FROM users WHERE email=?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $user = $stmt->get_result()->fetch_assoc();
+    // Throttle by email AND by IP: the first stops one account being hammered,
+    // the second stops one attacker spraying the same password across many
+    // accounts. Only failures count, and a successful login clears both.
+    rateLimitSweep($conn);
+    $limitKeys = ["email:" . $email, "ip:" . client_ip()];
 
-    if ($user && password_verify($password, $user["password_hash"])) {
-        if (!empty($user["is_banned"])) {
-            $msg = "บัญชีนี้ถูกระงับการใช้งาน";
-        } else {
-            session_regenerate_id(true);
-            $_SESSION["user_id"] = $user["id"];
-            $_SESSION["name"]    = $user["name"];
-            $_SESSION["role"]    = $user["role"];
-            if (!empty($_POST["remember"])) {
-                setRememberCookie($conn, $user["id"]);
-            }
-            // Came from a council check-in link (event_link.php) while logged out: go back to it.
-            $afterLogin = $_SESSION["after_login"] ?? "";
-            unset($_SESSION["after_login"]);
-            if (preg_match('/^event_link\.php\?k=[0-9A-F]{20}$/', $afterLogin)) redirect($afterLogin);
-            redirect("dashboard.php");
+    foreach ($limitKeys as $key) {
+        if (rateLimitExceeded($conn, "login", $key)) {
+            $wait = rateLimitWaitText(rateLimitRetryAfter($conn, "login", $key));
+            $msg  = "ลองเข้าสู่ระบบผิดหลายครั้งเกินไป กรุณารออีก " . $wait . " แล้วลองใหม่";
+            break;
         }
-    } else {
-        $msg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+    }
+
+    // $msg set means we're over the limit — don't even check the password.
+    if ($msg === "") {
+        $stmt = $conn->prepare("SELECT id, name, password_hash, role, is_banned FROM users WHERE email=?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+
+        if ($user && password_verify($password, $user["password_hash"])) {
+            if (!empty($user["is_banned"])) {
+                $msg = "บัญชีนี้ถูกระงับการใช้งาน";
+            } else {
+                foreach ($limitKeys as $key) rateLimitClear($conn, "login", $key);
+                session_regenerate_id(true);
+                csrf_rotate();
+                $_SESSION["user_id"] = $user["id"];
+                $_SESSION["name"]    = $user["name"];
+                $_SESSION["role"]    = $user["role"];
+                if (!empty($_POST["remember"])) {
+                    setRememberCookie($conn, $user["id"]);
+                }
+                // Came from a council check-in link (event_link.php) while logged out: go back to it.
+                $afterLogin = $_SESSION["after_login"] ?? "";
+                unset($_SESSION["after_login"]);
+                if (preg_match('/^event_link\.php\?k=[0-9A-F]{20}$/', $afterLogin)) redirect($afterLogin);
+                redirect("dashboard.php");
+            }
+        } else {
+            foreach ($limitKeys as $key) rateLimitHit($conn, "login", $key);
+            $msg = "อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+        }
     }
 } elseif (($_GET["banned"] ?? "") === "1") {
     $msg = "บัญชีนี้ถูกระงับการใช้งาน";

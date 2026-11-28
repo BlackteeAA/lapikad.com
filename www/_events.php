@@ -115,11 +115,12 @@ function isValidEventQrToken($event, $token) {
     return false;
 }
 
+// Host and scheme come from APP_ALLOWED_HOSTS (_bootstrap.php), never from the
+// request's Host header — a forged one would otherwise be baked into the QR
+// codes and check-in links we print and hand out.
 function siteBaseUrl() {
-    $scheme = (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off")
-        || (($_SERVER["HTTP_X_FORWARDED_PROTO"] ?? "") === "https") ? "https" : "http";
-    $dir = rtrim(str_replace("\\", "/", dirname($_SERVER["SCRIPT_NAME"])), "/");
-    return $scheme . "://" . $_SERVER["HTTP_HOST"] . $dir;
+    $dir = rtrim(str_replace("\\", "/", dirname($_SERVER["SCRIPT_NAME"] ?? "/")), "/");
+    return app_base_url() . $dir;
 }
 
 function eventCheckinUrl($event, $slot = null) {
