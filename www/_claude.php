@@ -1,15 +1,17 @@
 <?php
-require_once __DIR__ . "/_claude_config.php";
-
-// Great-circle distance in kilometers between two lat/lng points.
-function haversineKm($lat1, $lng1, $lat2, $lng2) {
-    $earthRadiusKm = 6371;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLng = deg2rad($lng2 - $lng1);
-    $a = sin($dLat / 2) ** 2
-        + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
-    return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
+// Config file first, then the environment — same arrangement as _db.php and
+// _mail.php. An unconditional require here meant a checkout without
+// _claude_config.php made quest_recommend.php die with a fatal error.
+// With nothing configured we fall back to mock mode, which needs no API key.
+if (is_file(__DIR__ . "/_claude_config.php")) {
+    require_once __DIR__ . "/_claude_config.php";
 }
+
+$anthropicApiKey = $anthropicApiKey ?? (getenv("ANTHROPIC_API_KEY") ?: "");
+$claudeModel     = $claudeModel     ?? (getenv("CLAUDE_MODEL") ?: "claude-haiku-4-5");
+// Mock unless a key is actually present, so a half-configured install can't
+// start spending money by accident.
+$claudeMockMode  = $claudeMockMode  ?? ($anthropicApiKey === "");
 
 // Builds a cheap, deterministic stand-in reply for $claudeMockMode so the whole
 // chat/recommend flow can be exercised end to end without spending API credits.

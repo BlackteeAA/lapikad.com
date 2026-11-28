@@ -45,6 +45,7 @@ try {
         if ($r === "ok")               $done = ["points" => $points, "note" => $note];
         elseif ($r === "insufficient") $error = "คะแนนของลูกค้าไม่พอ";
         elseif ($r === "invalid")      $error = "กรุณาเลือกรางวัลหรือใส่จำนวนคะแนนที่จะหัก";
+        elseif ($r === "too_large")    $error = "หักได้ไม่เกิน " . number_format(SHOP_REDEEM_MAX_POINTS) . " คะแนนต่อครั้ง";
         else                           $error = "หักคะแนนไม่สำเร็จ กรุณาลองใหม่";
     }
 } catch (mysqli_sql_exception $e) {

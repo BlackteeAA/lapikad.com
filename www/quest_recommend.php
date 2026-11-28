@@ -1,6 +1,7 @@
 <?php
 require_once "_auth.php";
 require_once "_claude.php";
+require_once "_ratelimit.php";
 
 header("Content-Type: application/json; charset=utf-8");
 
@@ -19,6 +20,22 @@ if (time() - $lastAttempt < 5) {
 $_SESSION["last_quest_recommend"] = time();
 
 $userId = intval($_SESSION["user_id"]);
+
+// The 5s cooldown above lives in the session, so dropping the cookie gets round
+// it. This hourly cap is per account in the database and is what actually keeps
+// the Claude bill bounded. Counted before the call; the 60s reply cache below
+// means normal reloads don't spend from the allowance.
+rateLimitSweep($conn);
+$aiKey = "user:" . $userId;
+if (rateLimitExceeded($conn, "ai_recommend", $aiKey)) {
+    http_response_code(429);
+    $wait = rateLimitWaitText(rateLimitRetryAfter($conn, "ai_recommend", $aiKey));
+    echo json_encode([
+        "reply"  => "วันนี้ขอคำแนะนำจากน้องพิกัดบ่อยมากแล้ว กรุณารออีก " . $wait . " แล้วลองใหม่นะครับ",
+        "quests" => [],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 $lat = (isset($_POST["lat"]) && $_POST["lat"] !== "") ? floatval($_POST["lat"]) : null;
 $lng = (isset($_POST["lng"]) && $_POST["lng"] !== "") ? floatval($_POST["lng"]) : null;
 
@@ -63,7 +80,7 @@ $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 foreach ($rows as &$r) {
     if ($lat !== null && $lng !== null && $r["lat"] !== null && $r["lng"] !== null) {
-        $r["distance_km"] = round(haversineKm($lat, $lng, floatval($r["lat"]), floatval($r["lng"])), 1);
+        $r["distance_km"] = round(haversineMeters($lat, $lng, floatval($r["lat"]), floatval($r["lng"])) / 1000, 1);
     } else {
         $r["distance_km"] = null;
     }
@@ -111,6 +128,7 @@ $cached   = $_SESSION["quest_recommend_cache"] ?? null;
 if ($cached && $cached["key"] === $cacheKey && (time() - $cached["time"]) < 60) {
     $reply = $cached["reply"];
 } else {
+    rateLimitHit($conn, "ai_recommend", $aiKey);
     $reply = askClaude($systemPrompt, "ช่วยแนะนำภารกิจที่ควรไปทำต่อไปให้หน่อย พร้อมเหตุผลสั้นๆ");
     $_SESSION["quest_recommend_cache"] = ["key" => $cacheKey, "reply" => $reply, "time" => time()];
 }

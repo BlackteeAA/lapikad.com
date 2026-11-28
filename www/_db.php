@@ -1,6 +1,31 @@
 <?php
 require_once __DIR__ . "/_bootstrap.php";
-require_once __DIR__ . "/_db_config.php";
+
+// Credentials come from one of two places, in this order:
+//
+//   1. _db_config.php — a file next to this one, copied from
+//      _db_config.example.php. This is how cPanel/shared hosting is set up.
+//   2. The DB_HOST / DB_USER / DB_PASS / DB_NAME environment variables, which
+//      docker-compose.yml passes into the container.
+//
+// Before, only (1) was read while compose only set (2), so the compose values
+// looked meaningful but were ignored and the container needed a hand-copied
+// file anyway. Either source works now, and a partial config file can be
+// topped up from the environment.
+if (is_file(__DIR__ . "/_db_config.php")) {
+    require_once __DIR__ . "/_db_config.php";
+}
+
+// Parentheses are required: PHP 8 refuses to parse ?? mixed with ?: without them.
+$dbHost = $dbHost ?? (getenv("DB_HOST") ?: "localhost");
+$dbUser = $dbUser ?? (getenv("DB_USER") ?: "");
+$dbPass = $dbPass ?? (getenv("DB_PASS") ?: "");
+$dbName = $dbName ?? (getenv("DB_NAME") ?: "");
+
+if ($dbUser === "" || $dbName === "") {
+    error_log("_db.php: no database credentials — copy www/_db_config.example.php to www/_db_config.php, or set DB_USER/DB_NAME in the environment");
+    die("Database is not configured.");
+}
 
 $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
 
@@ -51,6 +76,7 @@ function extractQrCode($rawCode) {
 }
 
 // Straight-line (Haversine) distance between two lat/lng points, in meters.
+// The one implementation: _claude.php used to carry a second copy in kilometres.
 function haversineMeters($lat1, $lng1, $lat2, $lng2) {
     $R = 6371000;
     $dLat = deg2rad($lat2 - $lat1);
@@ -131,6 +157,7 @@ function tryRememberLogin($conn) {
     ]);
 
     session_regenerate_id(true);
+    csrf_rotate();
     $_SESSION["user_id"] = $row["user_id"];
     $_SESSION["name"]    = $row["name"];
     $_SESSION["role"]    = $row["role"];

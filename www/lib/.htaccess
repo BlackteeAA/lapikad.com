@@ -1,0 +1,3 @@
+# Vendored libraries (PHPMailer, tFPDF). Loaded from disk by _mail.php and the
+# PDF reports; the fonts under tfpdf/font/ are read by PHP, not by the browser.
+Require all denied
