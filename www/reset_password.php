@@ -1,5 +1,6 @@
 <?php
 require_once "_db.php";
+require_once "_ratelimit.php";
 
 $msg     = "";
 $msgType = "bad";
@@ -42,6 +43,16 @@ if ($validToken && $_SERVER["REQUEST_METHOD"] === "POST") {
         $stmt = $conn->prepare("DELETE FROM remember_tokens WHERE user_id=?");
         $stmt->bind_param("i", $userId);
         $stmt->execute();
+
+        // Someone locked out by failed logins has just proved they own the
+        // mailbox, so don't make them wait out the login throttle as well.
+        $stmt = $conn->prepare("SELECT email FROM users WHERE id=?");
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $resetEmail = $stmt->get_result()->fetch_assoc()["email"] ?? "";
+        if ($resetEmail !== "") {
+            rateLimitClear($conn, "login", "email:" . strtolower($resetEmail));
+        }
 
         $done = true;
     }

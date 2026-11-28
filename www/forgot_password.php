@@ -1,11 +1,14 @@
 <?php
 require_once "_db.php";
 require_once "_mail.php";
+require_once "_ratelimit.php";
 
-$msg      = "";
-$sent     = false;
-$notFound = false;
-$mailError = null; // TEMP debug — remove once SMTP is confirmed working
+$msg  = "";
+// Shown whenever a submit was accepted — identical for an address that has an
+// account and one that doesn't, so this page can't be used to find out which
+// email addresses belong to students. SMTP failures go to the error log only;
+// telling the visitor "sending failed" would give the answer away again.
+$done = false;
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!csrf_verify()) redirect("forgot_password.php");
@@ -13,6 +16,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = strtolower(trim($_POST["email"] ?? ""));
 
     if ($email !== "") {
+        // Per address (stops mail-bombing one person) and per IP (stops one
+        // attacker working through a list). Counted before we look the address
+        // up, so a throttled response doesn't depend on whether it exists.
+        rateLimitSweep($conn);
+        $emailKey = "email:" . $email;
+        $ipKey    = "ip:" . client_ip();
+
+        if (rateLimitExceeded($conn, "forgot_email", $emailKey)) {
+            $wait = rateLimitWaitText(rateLimitRetryAfter($conn, "forgot_email", $emailKey));
+            $msg  = "ขอลิงก์รีเซ็ตบ่อยเกินไป กรุณารออีก " . $wait . " แล้วลองใหม่";
+        } elseif (rateLimitExceeded($conn, "forgot_ip", $ipKey)) {
+            $wait = rateLimitWaitText(rateLimitRetryAfter($conn, "forgot_ip", $ipKey));
+            $msg  = "ขอลิงก์รีเซ็ตบ่อยเกินไป กรุณารออีก " . $wait . " แล้วลองใหม่";
+        } else {
+            rateLimitHit($conn, "forgot_email", $emailKey);
+            rateLimitHit($conn, "forgot_ip", $ipKey);
+            $done = true;
+        }
+    }
+
+    if ($done) {
         $stmt = $conn->prepare("SELECT id, name FROM users WHERE email=?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
@@ -31,15 +55,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt->bind_param("iss", $user["id"], $hash, $expires);
             $stmt->execute();
 
-            $scheme   = !empty($_SERVER["HTTPS"]) ? "https" : "http";
-            $resetUrl = "$scheme://" . $_SERVER["HTTP_HOST"] . "/reset_password.php?token=" . $token;
+            // Built from APP_ALLOWED_HOSTS, not from the request's Host header:
+            // a forged "Host: evil.com" must not end up in a link we email out.
+            $resetUrl = app_base_url() . "/reset_password.php?token=" . $token;
 
             $subject = "รีเซ็ตรหัสผ่าน ล่าพิกัด.com";
             $body    = "คลิกลิงก์นี้เพื่อตั้งรหัสผ่านใหม่ (ใช้ได้ 1 ชั่วโมง):\n\n$resetUrl\n\nถ้าคุณไม่ได้ขอเปลี่ยนรหัสผ่าน สามารถเพิกเฉยอีเมลนี้ได้";
-            $sent = sendAppMail($email, $user["name"], $subject, $body, $mailError);
-        } else {
-            $notFound = true;
+            // The failure reason stays in the server error log (sendAppMail
+            // writes it there); it must never reach this public page, because
+            // PHPMailer's ErrorInfo carries the SMTP host and username.
+            if (!sendAppMail($email, $user["name"], $subject, $body)) {
+                error_log("forgot_password: reset mail to $email failed");
+            }
         }
+        // No else: an unknown address gets exactly the same page.
     }
 }
 ?>
@@ -141,22 +170,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
       <h1>ลืมรหัสผ่าน</h1>
 
-      <?php if ($sent): ?>
+      <?php if ($done): ?>
         <p class="hint">กรอกอีเมลที่ใช้สมัคร แล้วเราจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้</p>
-        <div class="auth-alert">ส่งลิงก์รีเซ็ตรหัสผ่านไปที่อีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึงถังขยะ/สแปม)</div>
-        <?php if ($mailError): ?>
-          <div class="auth-alert bad" style="word-break:break-word">DEBUG (ลบออกทีหลัง): <?= e($mailError) ?></div>
-        <?php endif; ?>
+        <div class="auth-alert">ถ้าอีเมลนี้มีบัญชีอยู่ในระบบ เราได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปให้แล้ว กรุณาตรวจสอบกล่องจดหมาย (รวมถึงถังขยะ/สแปม)</div>
         <div class="auth-bottom">
           <a href="login.php">กลับไปหน้าเข้าสู่ระบบ</a>
         </div>
       <?php else: ?>
         <p class="hint">กรอกอีเมลที่ใช้สมัคร แล้วเราจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้</p>
 
-        <?php if ($notFound): ?>
-          <div class="auth-alert bad">ไม่มีอีเมลนี้ในระบบ</div>
-        <?php elseif ($mailError): ?>
-          <div class="auth-alert bad" style="word-break:break-word">DEBUG (ลบออกทีหลัง) — ส่งไม่สำเร็จ: <?= e($mailError) ?></div>
+        <?php if ($msg !== ""): ?>
+          <div class="auth-alert bad"><?= e($msg) ?></div>
         <?php endif; ?>
 
         <form method="post">

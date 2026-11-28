@@ -14,6 +14,12 @@ services:
 
   web:
     build: .
+    # Caddy fronts this in production, but its Caddyfile only answers for the
+    # real domain — so without this the site was unreachable on localhost and
+    # README's http://localhost:8080 pointed at nothing. Bound to 127.0.0.1 so
+    # it isn't exposed to the network.
+    ports:
+      - "127.0.0.1:8080:80"
     volumes:
       - ./www:/var/www/html
     environment:

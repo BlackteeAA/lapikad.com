@@ -1,5 +1,17 @@
 <?php
-require_once __DIR__ . "/_claude_config.php";
+// Config file first, then the environment — same arrangement as _db.php and
+// _mail.php. An unconditional require here meant a checkout without
+// _claude_config.php made quest_recommend.php die with a fatal error.
+// With nothing configured we fall back to mock mode, which needs no API key.
+if (is_file(__DIR__ . "/_claude_config.php")) {
+    require_once __DIR__ . "/_claude_config.php";
+}
+
+$anthropicApiKey = $anthropicApiKey ?? (getenv("ANTHROPIC_API_KEY") ?: "");
+$claudeModel     = $claudeModel     ?? (getenv("CLAUDE_MODEL") ?: "claude-haiku-4-5");
+// Mock unless a key is actually present, so a half-configured install can't
+// start spending money by accident.
+$claudeMockMode  = $claudeMockMode  ?? ($anthropicApiKey === "");
 
 // Great-circle distance in kilometers between two lat/lng points.
 function haversineKm($lat1, $lng1, $lat2, $lng2) {
