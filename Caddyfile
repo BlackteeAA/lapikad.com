@@ -1,3 +1,17 @@
-yourdomain.com {
-    reverse_proxy web:80
+# Local development only.
+#
+# Production is a file upload to cPanel, which runs its own Apache and never
+# reads this file — so there is no real domain to put here. It used to say
+# "yourdomain.com", which answered for nothing and made it look as though the
+# site was served through Caddy.
+#
+# ":80" means plain HTTP on any hostname. Do not name a real domain: Caddy
+# would go straight out to Let's Encrypt for a certificate on startup, which
+# cannot succeed on a laptop (public DNS does not point at it) and leaves the
+# site unreachable while it retries.
+#
+# Day to day you do not need this at all — docker-compose.yml publishes the web
+# container on http://localhost:8080 directly.
+:80 {
+	reverse_proxy web:80
 }
