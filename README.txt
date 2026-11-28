@@ -49,9 +49,15 @@ phpMyAdmin   http://localhost:8081   (server: db, user: root, pass: ค่า DB
 ที่นั่นตั้ง environment variable ให้ PHP ไม่ได้ จึงต้องใช้ไฟล์ config
 
   1. cp www/_db_config.example.php www/_db_config.php แล้วใส่ค่าจริง
-  2. แก้ APP_ALLOWED_HOSTS ใน www/_bootstrap.php ให้เป็นโดเมนจริง
+  2. APP_ALLOWED_HOSTS ใน www/_bootstrap.php ตั้งเป็นโดเมนจริงไว้แล้ว
      ลิงก์รีเซ็ตรหัสผ่านและ QR ทุกใบสร้างจากค่านี้ ไม่ใช่จาก Host header
-     ถ้าใส่ผิด ลิงก์ที่ส่งทางอีเมลจะชี้ไปผิดที่
+
+     โดเมนคือ ล่าพิกัด.com แต่ในไฟล์เขียนเป็น punycode: xn--12c2b2a1a6ddp1n.com
+     เพราะเบราว์เซอร์ส่ง Host header เป็น punycode เสมอ ข้อความไทยเป็นแค่สิ่งที่
+     ช่องที่อยู่แสดงให้ดู ถ้าเขียนเป็นไทยจะไม่ match request จริงเลยแม้แต่อันเดียว
+
+     ย้ายโดเมนเมื่อไหร่ แปลงค่าใหม่ด้วย
+       node -e "console.log(require('url').domainToASCII('โดเมนใหม่.com'))"
   3. รัน migration ใน sql/README.md ให้ครบ
   4. www/.htaccess บังคับ HTTPS และปิดการเข้าถึง _*.php, includes/, lib/ โดยตรง
      ต้องแน่ใจว่าโฮสต์เปิด AllowOverride ให้
