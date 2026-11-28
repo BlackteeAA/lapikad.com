@@ -13,16 +13,6 @@ $claudeModel     = $claudeModel     ?? (getenv("CLAUDE_MODEL") ?: "claude-haiku-
 // start spending money by accident.
 $claudeMockMode  = $claudeMockMode  ?? ($anthropicApiKey === "");
 
-// Great-circle distance in kilometers between two lat/lng points.
-function haversineKm($lat1, $lng1, $lat2, $lng2) {
-    $earthRadiusKm = 6371;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLng = deg2rad($lng2 - $lng1);
-    $a = sin($dLat / 2) ** 2
-        + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
-    return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
-}
-
 // Builds a cheap, deterministic stand-in reply for $claudeMockMode so the whole
 // chat/recommend flow can be exercised end to end without spending API credits.
 // Reads naturally (no "[test mode]" labeling) — it's still just template text

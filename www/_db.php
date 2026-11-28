@@ -76,6 +76,7 @@ function extractQrCode($rawCode) {
 }
 
 // Straight-line (Haversine) distance between two lat/lng points, in meters.
+// The one implementation: _claude.php used to carry a second copy in kilometres.
 function haversineMeters($lat1, $lng1, $lat2, $lng2) {
     $R = 6371000;
     $dLat = deg2rad($lat2 - $lat1);

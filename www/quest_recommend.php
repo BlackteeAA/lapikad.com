@@ -80,7 +80,7 @@ $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 foreach ($rows as &$r) {
     if ($lat !== null && $lng !== null && $r["lat"] !== null && $r["lng"] !== null) {
-        $r["distance_km"] = round(haversineKm($lat, $lng, floatval($r["lat"]), floatval($r["lng"])), 1);
+        $r["distance_km"] = round(haversineMeters($lat, $lng, floatval($r["lat"]), floatval($r["lng"])) / 1000, 1);
     } else {
         $r["distance_km"] = null;
     }
