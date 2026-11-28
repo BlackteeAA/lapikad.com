@@ -1,0 +1,2 @@
+# Page fragments, included from a page by path. Never requested over HTTP.
+Require all denied

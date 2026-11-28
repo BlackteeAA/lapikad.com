@@ -1,3 +1,25 @@
 RewriteEngine On
+
+# Force HTTPS, with two exceptions.
+#
+# 1. Behind the Caddy reverse proxy TLS is terminated at the proxy and the
+#    request reaches Apache as plain HTTP, so %{HTTPS} alone would redirect to
+#    https for ever in a loop. Caddy sets X-Forwarded-Proto: https on those.
+# 2. Plain http://localhost:8080 is how the Docker dev setup is used, and there
+#    is no certificate for it — redirecting there just breaks dev.
 RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Shared modules (_db.php, _auth.php, _events.php, …) are meant to be included
+# by a page, never fetched directly. Nothing breaks today if one is requested —
+# they only define functions — but that is luck, not a guarantee: a future
+# module that runs something at include time would run it for anyone with the
+# URL. Deny them at the edge instead of relying on that.
+#
+# This covers the *_config.example.php templates too — every one of them is
+# named with a leading underscore.
+<FilesMatch "^_">
+  Require all denied
+</FilesMatch>
