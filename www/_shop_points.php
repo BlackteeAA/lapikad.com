@@ -12,6 +12,12 @@ require_once __DIR__ . "/_events.php"; // _auth, siteBaseUrl(), qrImageUrl(), ge
 define("SHOP_CHECKIN_CUSTOMER_POINTS", 10);
 define("SHOP_CHECKIN_SHOP_POINTS", 10);
 define("SHOP_RANK_DAYS", 30);
+// Ceiling on a single redemption, and on what a shop may price a reward at.
+// A check-in is worth 10 points, so 5,000 is already hundreds of visits —
+// anything above it is a typo or a shop emptying a customer's balance. The
+// form has max="<balance>" on the custom-amount field, but that is client-side
+// only; this is the limit that actually holds.
+define("SHOP_REDEEM_MAX_POINTS", 5000);
 define("SHOP_TZ", "Asia/Bangkok");
 // Personal QR shown in my_points.php for shops to scan.
 define("CUSTOMER_QR_PREFIX", "LAPIKAD-ME:");
@@ -118,6 +124,7 @@ function shopCheckin($conn, $userId, $place) {
 function redeemShopPoints($conn, $placeId, $userId, $points, $note, $byUserId) {
     $points = intval($points);
     if ($points <= 0) return "invalid";
+    if ($points > SHOP_REDEEM_MAX_POINTS) return "too_large";
     $note = mb_substr(trim((string)$note), 0, 150, "UTF-8");
     $note = $note !== "" ? $note : null;
 

@@ -33,6 +33,10 @@ if (uploadPostTooLarge()) {
             $msg = "ไม่พบรางวัลนี้"; $msgType = "bad";
         } elseif ($name === "" || $cost <= 0) {
             $msg = "กรุณากรอกชื่อรางวัลและคะแนนที่ใช้แลก (มากกว่า 0)"; $msgType = "bad";
+        } elseif ($cost > SHOP_REDEEM_MAX_POINTS) {
+            // Same ceiling redeemShopPoints() enforces, so a shop can't create a
+            // reward that could never be redeemed.
+            $msg = "คะแนนที่ใช้แลกต้องไม่เกิน " . number_format(SHOP_REDEEM_MAX_POINTS) . " คะแนน"; $msgType = "bad";
         } else {
             [$imgErr, $newImg] = saveShopRewardImage($_FILES["image"] ?? null, $placeId);
             if ($imgErr) {
@@ -109,7 +113,7 @@ $rewards = getShopRewards($conn, $placeId);
           </label>
           <input name="name" maxlength="150" placeholder="ชื่อรางวัล เช่น ก๋วยเตี๋ยวฟรี 1 ชาม" required>
           <input name="description" maxlength="500" placeholder="รายละเอียด (ไม่ใส่ก็ได้) เช่น ไม่รวมพิเศษ">
-          <input name="cost_points" type="number" min="1" placeholder="คะแนนที่ใช้แลก เช่น 100" required>
+          <input name="cost_points" type="number" min="1" max="<?= SHOP_REDEEM_MAX_POINTS ?>" placeholder="คะแนนที่ใช้แลก เช่น 100" required>
           <button class="sp-btn" type="submit" style="margin:0">+ เพิ่มรางวัล</button>
         </form>
       </section>
@@ -149,7 +153,7 @@ $rewards = getShopRewards($conn, $placeId);
                 <?php endif; ?>
                 <input name="name" maxlength="150" value="<?= e($rw["name"]) ?>" required>
                 <input name="description" maxlength="500" value="<?= e($rw["description"] ?? "") ?>" placeholder="รายละเอียด">
-                <input name="cost_points" type="number" min="1" value="<?= intval($rw["cost_points"]) ?>" required>
+                <input name="cost_points" type="number" min="1" max="<?= SHOP_REDEEM_MAX_POINTS ?>" value="<?= intval($rw["cost_points"]) ?>" required>
                 <button class="sp-btn" type="submit" style="margin:0">บันทึก</button>
               </form>
               <form method="post" style="margin-top:8px" onsubmit="return confirm('ลบรางวัลนี้?')">
